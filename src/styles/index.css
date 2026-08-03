@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #F1F7ED;
+  --color-dark: #243E36;
+  --color-accent: #7CA982;
+  --color-text-muted: #5a7a6e;
+  --color-border: #d4e6d5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-dark);
+  -webkit-font-smoothing: antialiased;
+}
