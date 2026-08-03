@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Users, Award, ArrowRight, CheckCircle, Menu, X, Layers, Bell, FileText } from "lucide-react";
+import logo from "../../assets/logo.png";
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -153,11 +154,9 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, background: "#243E36", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <BookOpen size={17} color="#7CA982" />
-            </div>
+            <img src={logo} alt="Emegema logo" style={{ width: 34, height: 34, objectFit: "contain" }} />
             <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 19, color: "#243E36" }}>
-              EduSpace
+              Emegema
             </span>
           </div>
 
@@ -236,12 +235,10 @@ export default function LandingPage() {
       {/* ─── SLIM FOOTER ─── */}
       <footer style={{ background: "#243E36", padding: "14px 5%", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 24, height: 24, background: "#7CA982", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <BookOpen size={12} color="#fff" />
-          </div>
-          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 13, color: "#F1F7ED" }}>EduSpace</span>
+          <img src={logo} alt="Emegema logo" style={{ width: 24, height: 24, objectFit: "contain" }} />
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 13, color: "#F1F7ED" }}>Emegema</span>
         </div>
-        <p style={{ color: "rgba(241,247,237,0.4)", fontSize: 11 }}>© 2025 EduSpace · Built for educators</p>
+        <p style={{ color: "rgba(241,247,237,0.4)", fontSize: 11 }}>© 2026 Emegema · Built for educators</p>
       </footer>
     </div>
   );

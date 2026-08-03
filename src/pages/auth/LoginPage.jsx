@@ -12,6 +12,7 @@ import { Eye, EyeOff, BookOpen, ArrowRight, AlertCircle, X } from "lucide-react"
 import { useAuthStore } from "../../store/authStore";
 import { supabase } from "../../services/supabase";
 import { Turnstile } from "@marsidev/react-turnstile";
+import logo from "../../assets/logo.png";
 
 const loginSchema = z.object({
   email:    z.string().min(1, "Email is required").email("Enter a valid email"),
@@ -77,8 +78,8 @@ export default function LoginPage() {
       <div style={st.leftPanel}>
         <div style={st.leftInner}>
           <a href="/" style={st.logo}>
-            <div style={st.logoIcon}><BookOpen size={20} color="#7CA982" /></div>
-            <span style={st.logoText}>EduSpace</span>
+            <img src={logo} alt="Emegema logo" style={{ width: 38, height: 38, objectFit: "contain" }} />
+            <span style={st.logoText}>Emegema</span>
           </a>
           <div style={st.quoteWrap}>
             <div style={st.quoteMark}>"</div>
@@ -101,7 +102,7 @@ export default function LoginPage() {
       <div style={st.rightPanel}>
         <div style={st.formWrap} className="form-wrap">
           <h1 style={st.heading}>Welcome back</h1>
-          <p style={st.subheading}>Sign in to your EduSpace account</p>
+          <p style={st.subheading}>Sign in to your Emegema account</p>
 
           {loggedOutFromInactivity && !serverError && (
             <div style={st.infoBox}>
