@@ -1,21 +1,8 @@
 // src/pages/student/StudentAssessmentTaker.jsx
-
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Clock, ChevronRight, ChevronLeft, AlertTriangle,
-  CheckCircle2, XCircle, Award, FileText, AlignLeft,
-  Maximize, Shield, Send, Loader2, EyeOff,
-} from "lucide-react";
+import { Clock, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, XCircle, Award, FileText, AlignLeft, Maximize, Shield, Send, Loader2, EyeOff, } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
-import {
-  getAssessmentWithQuestions,
-  getQuestionsForStudent,
-  submitAssessment,
-  sendAssessmentNotifications,
-  getOrCreateAttempt,
-  saveAttemptProgress,
-  completeAttempt,
-} from "../../services/assessmentService";
+import { getAssessmentWithQuestions, getQuestionsForStudent, submitAssessment, sendAssessmentNotifications, getOrCreateAttempt, saveAttemptProgress, completeAttempt, } from "../../services/assessmentService";
 
 function getInitials(name = "") {
   return name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
@@ -31,8 +18,6 @@ export default function StudentAssessmentTaker({ assessment, onBack, onDone }) {
   const { user, profile } = useAuthStore();
   const [phase, setPhase] = useState("pre");
   const [result, setResult] = useState(null);
-  // Holds the freshly-fetched assessment record (from DB), so timer
-  // settings can't go stale even if the parent's cached list is outdated.
   const [liveAssessment, setLiveAssessment] = useState(assessment);
 
   const handleStart = (freshAssessment) => {
@@ -58,8 +43,6 @@ function PreScreen({ assessment, onStart, onBack }) {
   const [loading,        setLoading]        = useState(true);
   const [questions,      setQuestions]      = useState([]);
   const [error,          setError]          = useState(null);
-  // Fresh copy pulled straight from the DB — never trust the possibly-stale
-  // `assessment` prop for timer-related fields.
   const [liveAssessment, setLiveAssessment] = useState(assessment);
 
   useEffect(() => {
@@ -290,9 +273,6 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
     };
 
     // ── Block browser back button ──
-    // Push a dummy history entry so pressing Back fires popstate instead of
-    // actually navigating away. We immediately push again to keep trapping it,
-    // and treat the attempt as a violation (same as exiting fullscreen).
     window.history.pushState({ examGuard: true }, "", window.location.href);
     const handlePopState = () => {
       if (submittedRef.current) return;
@@ -342,7 +322,6 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
     return () => clearInterval(timerRef.current);
   }, [currentIdx, loading, questions, timerMode, assessment.time_per_question, lockCurrentAndAdvance]);
 
-  // Overall timer — minsan lang nagsisimula, hindi nag-reset kapag lumipat ng tanong
   useEffect(() => {
     if (loading || questions.length === 0 || timerMode !== "overall") return;
     const totalSecs   = assessment.time_limit * 60;
@@ -364,7 +343,7 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [loading, questions.length, timerMode]);
 
   const handleAnswer = (questionId, answer) => setAnswers(prev => ({ ...prev, [questionId]: answer }));
@@ -587,14 +566,14 @@ function ResultsScreen({ assessment, result, studentId, studentName, onDone }) {
   const showAnswers = assessment?.show_answers_after_submit === true;
 
   useEffect(() => {
-    // Gamitin na lang yung result galing sa TakingScreen — wag nang mag-submit ulit
+    
     if (submissionResult) {
       setScore(submissionResult.autoScore);
       setMaxScore(submissionResult.maxScore);
       setSubmitting(false);
       return;
     }
-    // Fallback: manual compute lang (walang DB call)
+    
     let s = 0, ms = 0;
     questions.forEach(q => {
       ms += q.points || 1;
@@ -685,14 +664,9 @@ function ResultsScreen({ assessment, result, studentId, studentName, onDone }) {
                 const ans     = answers[q.id] ?? "";
                 const correct = q.correct_answer ?? "";
                 const isRight = isAuto && ans.toString().trim().toLowerCase() === correct.toString().trim().toLowerCase();
-
                 const displayAns     = q.type === "multiple_choice" ? (q.options || [])[Number(ans)]     ?? "No answer" : ans || "No answer";
                 const displayCorrect = q.type === "multiple_choice" ? (q.options || [])[Number(correct)] ?? correct     : correct;
-
-                // Always show ✓/✗ and color — student deserves to know what they got right/wrong
-                // Only the correct answer TEXT is hidden when show_answers_after_submit is false
                 const borderColor = isAuto ? (isRight ? "#7CA982" : "#e05252") : "#e0a052";
-
                 const rowIcon = isAuto
                   ? isRight ? <CheckCircle2 size={14} color="#7CA982" /> : <XCircle size={14} color="#e05252" />
                   : <Clock size={14} color="#e0a052" />;

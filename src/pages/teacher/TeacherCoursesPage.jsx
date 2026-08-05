@@ -12,20 +12,7 @@ import {
   Dumbbell, Palette, Music2, Cpu, HeartHandshake,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
-import {
-  getTeacherCourses,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  archiveCourse,
-  getArchivedCourses,
-  unarchiveCourse,
-  getCourseStudents,
-  getAllStudents,
-  enrollStudent,
-  unenrollStudent,
-  createStudentAccount,
-} from "../../services/courseService";
+import { getTeacherCourses, createCourse, updateCourse, deleteCourse, archiveCourse, getArchivedCourses, unarchiveCourse, getCourseStudents, getAllStudents, enrollStudent, unenrollStudent, createStudentAccount, } from "../../services/courseService";
 import CourseAssessmentsTab from "./CourseAssessmentsTab";
 import CourseAssignmentsTab from "./CourseAssignmentsTab";
 import { supabase } from "../../services/supabase";
@@ -66,7 +53,7 @@ function stringToColor(str = "") {
 }
 
 // ─────────────────────────────────────────────
-// SUBJECT ILLUSTRATION (same SVG icon-stamp pattern as Student Course Page)
+// SUBJECT ILLUSTRATION 
 // ─────────────────────────────────────────────
 function getSubjectStamps(subject) {
   const s = (subject || "").toLowerCase();
@@ -626,7 +613,7 @@ function CourseListView({ courses, onSelect, onArchive, onDelete }) {
 }
 
 // ─────────────────────────────────────────────
-// COURSE DETAIL PAGE — now with 4 tabs
+// COURSE DETAIL PAGE 
 // ─────────────────────────────────────────────
 function CourseDetailPage({ course, onBack, onCourseUpdated, teacherId, onAssessmentChanged }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -641,8 +628,6 @@ function CourseDetailPage({ course, onBack, onCourseUpdated, teacherId, onAssess
     try {
       const activeStudents = await getCourseStudents(course.id);
       const activeIds = new Set(activeStudents.map(s => s.id));
-
-      // ── Assignments pending count ──
       const { data: assignments } = await supabase
         .from("assignments")
         .select("id")
@@ -660,7 +645,6 @@ function CourseDetailPage({ course, onBack, onCourseUpdated, teacherId, onAssess
         pendingAssignments = (subs || []).filter(s => activeIds.has(s.student_id)).length;
       }
 
-      // ── Assessments pending count ──
       const { data: assessments } = await supabase
         .from("assessments")
         .select("id")

@@ -1,30 +1,8 @@
 // src/pages/teacher/CourseAssessmentsTab.jsx
 
-import { useState, useEffect, useCallback } from "react";
-import {
-  Plus, X, ChevronDown, ChevronUp, Trash2, Eye,
-  EyeOff, Send, Clock, Award, FileText, CheckSquare,
-  AlignLeft, Edit3, BookOpen, AlertCircle, Loader2,
-  RefreshCw, CheckCircle2, Lock, Unlock, MoreVertical,
-  ArrowUp, ArrowDown, Copy, Users, Star, Shuffle,
-  Database, Settings2, ToggleLeft, ToggleRight, Info, Download,
-} from "lucide-react";
-import {
-  getCourseAssessments,
-  createAssessment,
-  updateAssessment,
-  publishAssessment,
-  closeAssessment,
-  deleteAssessment,
-  saveQuestions,
-  getAssessmentWithQuestions,
-  getAssessmentSubmissions,
-  gradeSubmission,
-  saveAssessmentAsTemplate,
-  getTeacherTemplates,
-  deleteAssessmentTemplate,
-  applyTemplateToCourse,
-} from "../../services/assessmentService";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Plus, X, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, Send, Clock, Award, FileText, CheckSquare, AlignLeft, Edit3, BookOpen, AlertCircle, Loader2, RefreshCw, CheckCircle2, Lock, Unlock, MoreVertical, ArrowUp, ArrowDown, Copy, Users, Star, Shuffle, Database, Settings2, ToggleLeft, ToggleRight, Info, Download, } from "lucide-react";
+import { getCourseAssessments, createAssessment, updateAssessment, publishAssessment, closeAssessment, deleteAssessment, saveQuestions, getAssessmentWithQuestions, getAssessmentSubmissions, gradeSubmission, saveAssessmentAsTemplate, getTeacherTemplates, deleteAssessmentTemplate, applyTemplateToCourse, } from "../../services/assessmentService";
 import { getCourseTerms } from "../../services/courseService";
 import { exportSingleStudentDocx, exportAllStudentsDocx } from "../../services/exportService";
 import { createPortal } from "react-dom";
@@ -402,7 +380,7 @@ function SaveAsTemplateModal({ assessment, teacherId, onClose }) {
 }
 
 // ─────────────────────────────────────────────
-// MODAL: USE TEMPLATE (apply saved template to this course)
+// MODAL: USE TEMPLATE 
 // ─────────────────────────────────────────────
 function UseTemplateModal({ teacherId, targetCourseId, targetTermId, onClose, onApplied }) {
   const [list,     setList]     = useState([]);
@@ -563,6 +541,18 @@ function UseTemplateModal({ teacherId, targetCourseId, targetTermId, onClose, on
 // ─────────────────────────────────────────────
 function AssessmentCard({ assessment: a, onEdit, onPublish, onClose, onDelete, onViewSubmissions, onSaveTemplate }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
 
   const statusColor = {
     draft:     { bg: "#f5f5f5",  text: "#666",    label: "Draft"     },
@@ -617,7 +607,7 @@ function AssessmentCard({ assessment: a, onEdit, onPublish, onClose, onDelete, o
             )}
           </div>
 
-          <div style={{ position: "relative", flexShrink: 0 }}>
+          <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
             <button style={s.menuBtn} onClick={() => setMenuOpen(v => !v)} className="icon-action-btn">
               <MoreVertical size={15} />
             </button>
@@ -2102,70 +2092,43 @@ const s = {
   primaryBtn:   { background: "#243E36", color: "#F1F7ED", border: "none", borderRadius: 9, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s", whiteSpace: "nowrap" },
   secondaryBtn: { background: "#fff", color: "#5a7a6e", border: "1px solid #e8f3ea", borderRadius: 9, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s", whiteSpace: "nowrap" },
   backBtn:      { background: "none", border: "none", color: "#7CA982", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 },
-
   errorBox:  { background: "#fce8e8", border: "1px solid #f5c6c6", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 },
   retryBtn:  { background: "none", border: "1px solid #f5c6c6", borderRadius: 6, padding: "3px 8px", fontSize: 12, color: "#8b2020", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 4 },
-
   termTabs:      { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" },
   termTab:       { position: "relative", padding: "8px 20px", borderRadius: 9, border: "1.5px solid #e8f3ea", background: "#fff", color: "#5a7a6e", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" },
   termTabActive: { background: "#243E36", borderColor: "#243E36", color: "#fff" },
   termBadge: { position: "absolute", top: -6, right: -6, background: "#e05252", color: "#fff", fontSize: 10, fontWeight: 700, minWidth: 17, height: 17, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" },
-
   emptyState: { display: "flex", flexDirection: "column", alignItems: "center", padding: "64px 20px", gap: 10 },
   emptyIcon:  { width: 64, height: 64, background: "#e8f3ea", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 },
   emptyTitle: { fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "#243E36" },
   emptySub:   { fontSize: 13, color: "#9ab5a0", textAlign: "center", maxWidth: 280, marginBottom: 8 },
-
-  assessCard:   { background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "16px 20px", display: "flex", gap: 16, alignItems: "flex-start", overflow: "hidden", position: "relative" },
+  assessCard:   { background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "16px 20px", display: "flex", gap: 16, alignItems: "flex-start", overflow: "visible", position: "relative" },
   assessAccent: { width: 4, borderRadius: 99, alignSelf: "stretch", flexShrink: 0, minHeight: 60 },
   assessStat:   { display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#9ab5a0" },
   typePill:     { fontSize: 10, fontWeight: 700, color: "#fff", padding: "2px 8px", borderRadius: 99, textTransform: "uppercase", letterSpacing: "0.06em" },
   statusPill:   { fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99, display: "flex", alignItems: "center", gap: 4 },
-
   menuBtn:  { background: "none", border: "1px solid #e8f3ea", borderRadius: 7, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center", color: "#9ab5a0" },
   menuDrop: { position: "absolute", right: 0, top: "calc(100% + 6px)", background: "#fff", border: "1px solid #e8f3ea", borderRadius: 10, boxShadow: "0 8px 24px rgba(36,62,54,0.12)", zIndex: 50, minWidth: 160, overflow: "hidden" },
   menuItem: { display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", fontSize: 13, color: "#5a7a6e", background: "none", border: "none", cursor: "pointer", width: "100%", fontFamily: "'DM Sans', sans-serif", textAlign: "left" },
-
   questionCard: { background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "14px 16px", transition: "box-shadow 0.2s" },
   qNum:         { width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0 },
   qIconBtn:     { background: "none", border: "1px solid #e8f3ea", borderRadius: 6, padding: "4px 6px", cursor: "pointer", display: "flex", alignItems: "center", color: "#9ab5a0", transition: "all 0.15s" },
-
   addQBox:   { background: "#F1F7ED", border: "1.5px dashed #c8ddc9", borderRadius: 12, padding: "16px 20px" },
   addQBtn:   { display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1.5px solid", background: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" },
   addOptBtn: { display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", border: "1.5px dashed #c8ddc9", borderRadius: 8, background: "none", fontSize: 12, color: "#7CA982", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 600 },
-
   typeBtn:  { display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 7, border: "1.5px solid", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" },
   tfBtn:    { display: "flex", alignItems: "center", gap: 7, padding: "10px 24px", borderRadius: 9, border: "1.5px solid", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s", flex: 1, justifyContent: "center" },
   typeCard: { border: "1.5px solid", borderRadius: 12, padding: "16px", cursor: "pointer", textAlign: "center", transition: "all 0.2s", fontFamily: "'DM Sans', sans-serif" },
-
   subCard:    { background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 },
   miniAvatar: { width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 },
-
   fieldGroup: { display: "flex", flexDirection: "column", gap: 6 },
   label:      { fontSize: 13, fontWeight: 600, color: "#243E36" },
   input:      { width: "100%", padding: "10px 14px", borderRadius: 9, border: "1.5px solid #c8ddc9", background: "#fff", fontSize: 14, color: "#243E36", outline: "none", fontFamily: "'DM Sans', sans-serif", transition: "border-color 0.2s, box-shadow 0.2s", boxSizing: "border-box" },
-
-  modalOverlay: { 
-  position: "fixed", 
-  top: 0, 
-  left: 0, 
-  right: 0, 
-  bottom: 0, 
-  minHeight: "100vh", 
-  minWidth: "100vw", 
-  background: "rgba(0,0,0,0.85)", 
-  zIndex: 999999, 
-  display: "flex", 
-  alignItems: "center", 
-  justifyContent: "center", 
-  padding: "20px" 
-},
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, minHeight: "100vh", minWidth: "100vw", background: "rgba(0,0,0,0.85)", zIndex: 999999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" },
   modal: { background: "#fff", borderRadius: 16, width: "95vw", maxWidth: 800, maxHeight: "95vh", display: "flex", flexDirection: "column", boxShadow: "0 8px 24px rgba(36,62,54,0.12)" },
   modalHead:    { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid #e8f3ea", position: "sticky", top: 0, background: "#fff", zIndex: 1 },
   modalTitle:   { fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 800, color: "#243E36" },
   modalClose:   { background: "none", border: "none", cursor: "pointer", color: "#9ab5a0", display: "flex", alignItems: "center" },
-
-  // Pool / settings panel
   poolPanel:            { background: "#fafbff", border: "1.5px solid #c5d3f7", borderRadius: 14, padding: "20px 24px", marginBottom: 16 },
   settingCard:          { background: "#fff", border: "1.5px solid", borderRadius: 12, padding: "16px", display: "flex", flexDirection: "column", gap: 4, transition: "border-color 0.2s" },
   settingIcon:          { width: 36, height: 36, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" },

@@ -1,8 +1,4 @@
 // src/pages/admin/AdminDashboard.jsx
-// ─────────────────────────────────────────────
-// DROP THIS FILE INTO: src/pages/admin/AdminDashboard.jsx
-// REQUIRES: src/services/adminService.js
-// ─────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -626,7 +622,7 @@ function UsersPage({ users, loading, error, onRefresh }) {
         </div>
       )}
 
-      {/* Modal — rendered at this level, covers full viewport via fixed positioning */}
+      {}
       {showModal && (
         <AddUserModal
           onClose={() => setShowModal(false)}
@@ -1103,7 +1099,6 @@ function AddUserModal({ onClose, onSuccess }) {
   const [saving,    setSaving]    = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  // Prevent body scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
@@ -1189,7 +1184,7 @@ function AddUserModal({ onClose, onSuccess }) {
 }
 
 // ─────────────────────────────────────────────
-// MODAL: Info / Result (replaces window.alert)
+// MODAL: Info / Result
 // ─────────────────────────────────────────────
 function InfoModal({ title, message, variant = "success", onClose }) {
   useEffect(() => {
@@ -1218,7 +1213,7 @@ function InfoModal({ title, message, variant = "success", onClose }) {
 }
 
 // ─────────────────────────────────────────────
-// MODAL: Confirm (replaces window.confirm)
+// MODAL: Confirm
 // ─────────────────────────────────────────────
 function ConfirmModal({ title, message, confirmLabel = "Confirm", onConfirm, onClose }) {
   useEffect(() => {
@@ -1387,10 +1382,7 @@ const s = {
   statusDot:    { width: 8, height: 8, background: "#7CA982", borderRadius: "50%", boxShadow: "0 0 0 3px rgba(124,169,130,0.2)", flexShrink: 0 },
   statusText:   { fontSize: 12, color: "rgba(241,247,237,0.4)", fontWeight: 500 },
   logoutBtn:    { display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "rgba(241,247,237,0.35)", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: "8px 4px", width: "100%", transition: "color 0.15s" },
-
-  // Sidebar backdrop only (for mobile drawer) — NOT the modal overlay
   sidebarOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 35 },
-
   main:         { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
   topbar:       { height: 60, background: "#fff", borderBottom: "1px solid #e8f3ea", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, position: "sticky", top: 0, zIndex: 30 },
   menuBtn:      { background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "none" },
@@ -1466,17 +1458,7 @@ const s = {
   fieldGroup:   { display: "flex", flexDirection: "column", gap: 6 },
   label:        { fontSize: 13, fontWeight: 600, color: "#243E36" },
   input:        { width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid #c8ddc9", background: "#fff", fontSize: 14, color: "#243E36", outline: "none", fontFamily: "'DM Sans', sans-serif", transition: "border-color 0.2s", boxSizing: "border-box" },
-
-  // ── FIXED: Modal overlay now covers the entire viewport including sidebar ──
-  modalOverlay: {
-    position: "fixed",
-    top: 0, left: 0, right: 0, bottom: 0,
-    minHeight: "100vh", minWidth: "100vw",
-    background: "rgba(0,0,0,0.85)",
-    zIndex: 9999,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    padding: 20,
-  },
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, minHeight: "100vh", minWidth: "100vw", background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20,},
   modal:        { background: "#fff", borderRadius: 16, width: "100%", maxWidth: 460, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(0,0,0,0.3)" },
   modalHead:    { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid #e8f3ea", position: "sticky", top: 0, background: "#fff", zIndex: 1 },
   modalTitle:   { fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 800, color: "#243E36" },

@@ -1,4 +1,3 @@
-// src/pages/auth/ResetPasswordPage.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
@@ -16,7 +15,7 @@ export default function ResetPasswordPage() {
   const [validSession,    setValidSession]    = useState(false);
   const [checking,        setChecking]        = useState(true);
 
-  // Supabase sends the token via URL hash — need to detect the session
+  
   useEffect(() => {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY") {
@@ -25,7 +24,7 @@ export default function ResetPasswordPage() {
       }
     });
 
-    // Fallback check
+    
     setTimeout(() => setChecking(false), 2000);
   }, []);
 
@@ -64,7 +63,7 @@ export default function ResetPasswordPage() {
             <p style={{ fontSize: 14, color: "#9ab5a0" }}>Verifying reset link…</p>
           </div>
         ) : success ? (
-          /* ── Success ── */
+          
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "24px 0 8px" }}>
             <div style={{ width: 64, height: 64, background: "#e8f3ea", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <CheckCircle2 size={32} color="#7CA982" />
@@ -75,7 +74,7 @@ export default function ResetPasswordPage() {
             </div>
           </div>
         ) : (
-          /* ── Form ── */
+          
           <>
             <h1 style={r.heading}>Set New Password</h1>
             <p style={r.subheading}>Enter your new password below.</p>

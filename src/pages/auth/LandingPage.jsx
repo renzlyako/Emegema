@@ -28,6 +28,19 @@ export default function LandingPage() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@700;800&display=swap');
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes logoPulseGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(124,169,130,0.5); }
+          50%      { box-shadow: 0 0 0 6px rgba(124,169,130,0); }
+        }
+        .logo-glow-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          animation: logoPulseGlow 2.2s ease-in-out infinite;
+          flex-shrink: 0;
+        }
 
         .nav-link {
           color: #243E36;
@@ -154,15 +167,17 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <img src={logo} alt="Emegema logo" style={{ width: 34, height: 34, objectFit: "contain" }} />
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 19, color: "#243E36" }}>
-              Emegema
-            </span>
+            <div className="logo-glow-wrap">
+              <img src={logo} alt="Emegema logo" style={{ width: 34, height: 34, objectFit: "contain", position: "relative", zIndex: 1 }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 15, color: "#243E36", letterSpacing: "0.03em", lineHeight: 1, margin: 0 }}>EMEGEMA</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500, fontSize: 9, color: "#7CA982", letterSpacing: "0.05em", textTransform: "uppercase", lineHeight: 1, margin: 0 }}>Integrated Learning Hub</p>
+            </div>
           </div>
 
           <div className="nav-ctas" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <a href="/login" className="btn-outline" style={{ padding: "8px 20px", fontSize: 13 }}>Log in</a>
-            <a href="/register" className="btn-primary" style={{ padding: "8px 20px", fontSize: 13 }}>Get started</a>
+            <a href="/login" className="btn-primary" style={{ padding: "8px 20px", fontSize: 13 }}>Log in</a>
           </div>
 
           {/* Mobile menu button */}
@@ -178,8 +193,7 @@ export default function LandingPage() {
         {/* Mobile Menu */}
         {menuOpen && (
           <div style={{ background: "#F1F7ED", borderTop: "1px solid #d4e6d5", padding: "16px 5%", display: "flex", gap: 12 }}>
-            <a href="/login" className="btn-outline" style={{ flex: 1, justifyContent: "center" }}>Log in</a>
-            <a href="/register" className="btn-primary" style={{ flex: 1, justifyContent: "center" }}>Get started</a>
+            <a href="/login" className="btn-primary" style={{ flex: 1, justifyContent: "center" }}>Log in</a>
           </div>
         )}
       </nav>
@@ -212,13 +226,10 @@ export default function LandingPage() {
             EduSpace is your private learning hub manage courses, assignments, grades, and announcements all in one clean place.
           </p>
 
-          <div className="fade-up delay-3" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
-            <a href="/register" className="btn-primary" style={{ fontSize: 15, padding: "14px 32px" }}>
-              Start for free <ArrowRight size={16} />
-            </a>
-            <a href="/login" className="btn-outline" style={{ fontSize: 15, padding: "14px 32px" }}>
-              Log in to your class
-            </a>
+          <div className="fade-up delay-3" style={{ marginBottom: 36 }}>
+            <p style={{ fontSize: 12.5, color: "#9ab5a0" }}>
+              Access is by invitation only. Contact your administrator if you need an account.
+            </p>
           </div>
 
           {/* Compact highlights row instead of full feature sections */}
@@ -238,7 +249,10 @@ export default function LandingPage() {
           <img src={logo} alt="Emegema logo" style={{ width: 24, height: 24, objectFit: "contain" }} />
           <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 13, color: "#F1F7ED" }}>Emegema</span>
         </div>
-        <p style={{ color: "rgba(241,247,237,0.4)", fontSize: 11 }}>© 2026 Emegema · Built for educators</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <p style={{ color: "rgba(241,247,237,0.4)", fontSize: 11 }}>© 2026 Emegema · Built for educators and students</p>
+          <a href="/privacy-policy" style={{ color: "rgba(241,247,237,0.5)", fontSize: 11, textDecoration: "underline" }}>Privacy Policy</a>
+        </div>
       </footer>
     </div>
   );

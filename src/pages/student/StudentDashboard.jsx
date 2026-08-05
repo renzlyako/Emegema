@@ -1,28 +1,10 @@
 // src/pages/student/StudentDashboard.jsx
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  BookOpen, LayoutDashboard, GraduationCap, FileText,
-  Star, Bell, LogOut, Menu, X, ChevronRight, ChevronDown, Clock,
-  TrendingUp, Award, AlertCircle, CheckCircle2,
-  BookMarked, Calendar, MessageSquare, ClipboardList,
-  Loader2, RefreshCw, Search, Play, CheckSquare,
-  Plus, Hash, Eye, EyeOff,
-  Calculator, FlaskConical, Languages, Landmark,
-  Dumbbell, Palette, Music2, Cpu, HeartHandshake,
-} from "lucide-react";
+import { BookOpen, LayoutDashboard, GraduationCap, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, ChevronDown, Clock, TrendingUp, Award, AlertCircle, CheckCircle2, BookMarked, Calendar, MessageSquare, ClipboardList, Loader2, RefreshCw, Search, Play, CheckSquare, Plus, Hash, Eye, EyeOff, Calculator, FlaskConical, Languages, Landmark, Dumbbell, Palette, Music2, Cpu, HeartHandshake, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import {
-  getStudentProfile,
-  getStudentCourses,
-  getStudentAssignments,
-  getStudentGrades,
-  getStudentAnnouncements,
-  getStudentNotifications,
-  markNotificationRead,
-  markAnnouncementsRead,
-} from "../../services/studentService";
+import { getStudentProfile, getStudentCourses, getStudentAssignments, getStudentGrades, getStudentAnnouncements, getStudentNotifications, markNotificationRead, markAnnouncementsRead, } from "../../services/studentService";
 import { joinCourseByCode } from "../../services/courseService";
 import { getStudentAssessments } from "../../services/assessmentService";
 import StudentAssessmentTaker from "./StudentAssessmentTaker";
@@ -130,15 +112,15 @@ function JoinCourseModal({ studentId, onClose, onJoined }) {
   const [error,   setError]   = useState("");
   const [success, setSuccess] = useState(null);
 
-  // Lock body scroll
+  
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  // Auto-format: uppercase + insert hyphen after 3 chars
+  
   const handleCodeChange = (val) => {
-    // Strip everything except alphanumeric
+    
     const clean = val.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 7);
     if (clean.length > 3) {
       setCode(clean.slice(0, 3) + "-" + clean.slice(3));
@@ -406,7 +388,7 @@ const markAnnouncementsAsRead = useCallback(async () => {
   setAnnouncements(prev => prev.map(a => ({ ...a, is_read: true })));
 }, [user?.id, announcements]); 
 
-  // After successful join — refresh courses and navigate to Courses page
+  
   const handleJoined = () => {
     fetchCourses();
     fetchAssignments();
@@ -1174,14 +1156,14 @@ function ChangePasswordModal({ onClose }) {
 
     setLoading(true);
     try {
-      // Step 1: verify current password by re-signing in
+      
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: currentPassword,
       });
       if (signInError) { setError("Current password is incorrect."); setLoading(false); return; }
 
-      // Step 2: update to new password
+      
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) { setError(updateError.message); setLoading(false); return; }
 
@@ -1369,12 +1351,9 @@ const s = {
   welcomeTitle: { fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 800, color: "#243E36", marginBottom: 4 },
   welcomeDate: { fontSize: 13, color: "#9ab5a0" },
   welcomeBadge: { display: "flex", alignItems: "center", gap: 6, background: "#e8f3ea", border: "1px solid #c8ddc9", borderRadius: 99, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#243E36" },
-
-  // Join buttons (3 variants for different contexts)
   joinBtnTopbar: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#7CA982", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "background 0.2s", whiteSpace: "nowrap" },
   joinBtnPrimary: { display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", background: "#243E36", color: "#F1F7ED", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "background 0.2s", whiteSpace: "nowrap" },
   joinBtnEmpty: { display: "flex", alignItems: "center", gap: 6, padding: "9px 20px", background: "#7CA982", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "background 0.2s" },
-
   statsGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 },
   statCard: { background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "18px 20px", transition: "transform 0.2s, box-shadow 0.2s" },
   statIcon: { width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 },
@@ -1430,7 +1409,6 @@ const s = {
   searchInput: { width: "100%", padding: "9px 14px", borderRadius: 9, border: "1.5px solid #c8ddc9", background: "#fff", fontSize: 13, color: "#243E36", outline: "none", fontFamily: "'DM Sans', sans-serif", transition: "border-color 0.2s" },
 };
 
-// Join modal styles
 const jm = {
   overlay:   { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, minHeight: "100vh", minWidth: "100vw", background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
   modal:     { background: "#fff", borderRadius: 18, width: "100%", maxWidth: 420, boxShadow: "0 24px 64px rgba(0,0,0,0.2)" },

@@ -3,34 +3,10 @@
 import TeacherCoursesPage from "./TeacherCoursesPage";
 import { getCourseStudents } from "../../services/courseService";
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  BookOpen, LayoutDashboard, FileText, Star, Bell,
-  LogOut, Menu, X, ChevronRight, Clock, Users,
-  TrendingUp, Award, CheckCircle2, MessageSquare,
-  Plus, Calendar, Send, AlertCircle, Eye,
-  Trash2, GraduationCap, BookMarked,
-  ClipboardList, Loader2, RefreshCw, Search,
-  ChevronDown, ChevronUp, UserX, ExternalLink, Link,
-  CheckSquare, EyeOff, UserPlus,
-} from "lucide-react";
+import { BookOpen, LayoutDashboard, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, Clock, Users, TrendingUp, Award, CheckCircle2, MessageSquare, Plus, Calendar, Send, AlertCircle, Eye, Trash2, GraduationCap, BookMarked, ClipboardList, Loader2, RefreshCw, Search, ChevronDown, ChevronUp, UserX, ExternalLink, Link, CheckSquare, EyeOff, UserPlus, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import {
-  getTeacherDashboardStats,
-  getTeacherPendingSubmissions,
-  getTeacherCourseAnalytics,
-  getTeacherTodaySchedule,
-  getTeacherAssignments,
-  deleteAssignment,
-  getTeacherStudents,
-  getTeacherGradebook,
-  getTeacherAnnouncements,
-  postAnnouncement,
-  deleteAnnouncement,
-  gradeSubmission,
-  saveGradebookConfig,
-  saveManualScore,
-} from "../../services/teacherService";
+import { getTeacherDashboardStats, getTeacherPendingSubmissions, getTeacherCourseAnalytics, getTeacherTodaySchedule, getTeacherAssignments, deleteAssignment, getTeacherStudents, getTeacherGradebook, getTeacherAnnouncements, postAnnouncement, deleteAnnouncement, gradeSubmission, saveGradebookConfig, saveManualScore, } from "../../services/teacherService";
 import { updateCourseTerms, createStudentAccount } from "../../services/courseService";
 import { supabase } from "../../services/supabase";
 import { createPortal } from "react-dom";
@@ -1881,7 +1857,6 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
       return {
         ...prev,
         [key]: isIn ? current.filter(x => x !== id) : [...current, id],
-        // Remove from opposite if adding
         [opposite]: isIn ? prev[opposite] : (prev[opposite] || []).filter(x => x !== id),
       };
     });
@@ -1900,7 +1875,7 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
     try {
       await saveGradebookConfig(course.id, teacherId, config);
       onSaved("✓ Setup saved successfully!");
-      // Refresh gradebook data so switching tabs reflects saved config
+      
       onRefresh?.();
     } catch (e) {
       onSaved(`❌ Error: ${e.message}`);

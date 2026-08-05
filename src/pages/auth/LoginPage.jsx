@@ -8,11 +8,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, BookOpen, ArrowRight, AlertCircle, X } from "lucide-react";
+import { Eye, EyeOff, BookOpen, ArrowRight, AlertCircle, X, TrendingUp, ClipboardCheck, UploadCloud, Settings2, Megaphone } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { supabase } from "../../services/supabase";
 import { Turnstile } from "@marsidev/react-turnstile";
 import logo from "../../assets/logo.png";
+import splitImg from "../../assets/split.png";
 
 const loginSchema = z.object({
   email:    z.string().min(1, "Email is required").email("Enter a valid email"),
@@ -23,6 +24,22 @@ const ROLE_REDIRECT = {
   admin:   "/admin/dashboard",
   teacher: "/teacher/dashboard",
   student: "/student/dashboard",
+};
+
+const HERO_CARDS = [
+  { icon: "grades",   title: "Full grade transparency", desc: "Students see every score, anytime, no more guessing where they stand.", tag: "Real-time" },
+  { icon: "assess",   title: "Online assessments",      desc: "Quizzes and exams taken online, auto-graded the moment students submit.", tag: "Auto-graded" },
+  { icon: "submit",   title: "Assignment submission",   desc: "Submit work directly through the platform, no lost papers, no excuses.", tag: "Paperless" },
+  { icon: "config",   title: "Configurable grading",    desc: "Teachers set their own grading weights for quizzes, exams, and activities.", tag: "Flexible" },
+  { icon: "announce", title: "Class announcements",     desc: "Teachers post updates that reach every student instantly.", tag: "Instant" },
+];
+
+const HERO_ICON_MAP = {
+  grades:   TrendingUp,
+  assess:   ClipboardCheck,
+  submit:   UploadCloud,
+  config:   Settings2,
+  announce: Megaphone,
 };
 
 export default function LoginPage() {
@@ -44,6 +61,10 @@ export default function LoginPage() {
     }
   }, [user, profile, navigate]);
 
+  const [cardIndex, setCardIndex] = useState(0); useEffect(() => {
+  const interval = setInterval(() => { setCardIndex(prev => (prev + 1) % HERO_CARDS.length); }, 4800); return () => clearInterval(interval); }, []);
+  const goPrev = () => setCardIndex(prev => (prev - 1 + HERO_CARDS.length) % HERO_CARDS.length);
+  const goNext = () => setCardIndex(prev => (prev + 1) % HERO_CARDS.length);
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError]   = useState("");
   const [isLoading, setIsLoading]       = useState(false);
@@ -78,22 +99,49 @@ export default function LoginPage() {
       <div style={st.leftPanel}>
         <div style={st.leftInner}>
           <a href="/" style={st.logo}>
-            <img src={logo} alt="Emegema logo" style={{ width: 38, height: 38, objectFit: "contain" }} />
-            <span style={st.logoText}>Emegema</span>
+            <div className="logo-glow-wrap">
+              <img src={logo} alt="Emegema logo" style={{ width: 38, height: 38, objectFit: "contain", position: "relative", zIndex: 1 }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 18, color: "#F1F7ED", letterSpacing: "0.03em", lineHeight: 1, margin: 0 }}>EMEGEMA</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500, fontSize: 10, color: "rgba(124,169,130,0.8)", letterSpacing: "0.05em", textTransform: "uppercase", lineHeight: 1, margin: 0 }}>Integrated Learning Hub</p>
+            </div>
           </a>
-          <div style={st.quoteWrap}>
-            <div style={st.quoteMark}>"</div>
-            <p style={st.quoteText}>Education is the most powerful weapon which you can use to change the world.</p>
-            <p style={st.quoteAuthor}>— Nelson Mandela</p>
-          </div>
-          <div style={{ ...st.floatCard, top: "38%", left: "6%" }} className="float-card">
-            <span style={st.floatDot} /><span style={st.floatLabel}>4 courses active</span>
-          </div>
-          <div style={{ ...st.floatCard, top: "55%", right: "8%" }} className="float-card-2 float-card">
-            <span style={st.floatDot} /><span style={st.floatLabel}>Assignment due today</span>
-          </div>
-          <div style={{ ...st.floatCard, bottom: "22%", left: "10%" }} className="float-card-3 float-card">
-            <span style={st.floatDot} /><span style={st.floatLabel}>Grade posted: 94%</span>
+
+          <div style={st.heroCardCenter}>
+            <div style={st.heroCardWrap}>
+              {HERO_CARDS.map((card, i) => {
+                const diff = (i - cardIndex + HERO_CARDS.length) % HERO_CARDS.length;
+                let transform = "translateX(60%)";
+                let opacity = 0;
+                if (diff === 0) { transform = "translateX(0)"; opacity = 1; }
+                else if (diff === HERO_CARDS.length - 1) { transform = "translateX(-60%)"; opacity = 0; }
+                const Icon = HERO_ICON_MAP[card.icon];
+                return (
+                  <div key={card.title} style={{ ...st.heroCard, transform, opacity }}>
+                    <div style={st.heroCardIconRow}>
+                      <Icon size={22} color="#7CA982" />
+                      <span style={st.heroCardTag}>{card.tag}</span>
+                    </div>
+                    <p style={st.heroCardTitle}>{card.title}</p>
+                    <p style={st.heroCardDesc}>{card.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={st.heroCardNavRow}>
+              <button onClick={goPrev} style={st.heroCardNavBtn} aria-label="Previous">‹</button>
+              <div style={st.heroCardDots}>
+                {HERO_CARDS.map((card, i) => (
+                  <span
+                    key={card.title}
+                    onClick={() => setCardIndex(i)}
+                    style={{ ...st.heroCardDot, ...(i === cardIndex ? st.heroCardDotActive : {}) }}
+                  />
+                ))}
+              </div>
+              <button onClick={goNext} style={st.heroCardNavBtn} aria-label="Next">›</button>
+            </div>
           </div>
         </div>
       </div>
@@ -321,19 +369,49 @@ const fm = {
 
 const st = {
   root: { display: "flex", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", background: "#F1F7ED" },
-  leftPanel: { flex: 1, background: "#243E36", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" },
+  leftPanel: {
+    flex: 1,
+    background: `linear-gradient(to top, rgba(36,62,54,0.92) 0%, rgba(36,62,54,0.5) 45%, rgba(36,62,54,0.25) 100%), url(${splitImg})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center 30%",
+    backgroundRepeat: "no-repeat",
+    position: "relative",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+  },
   leftInner: { padding: "40px 48px", display: "flex", flexDirection: "column", height: "100%", position: "relative", zIndex: 1 },
   logo: { display: "flex", alignItems: "center", gap: 10, textDecoration: "none" },
   logoIcon: { width: 38, height: 38, background: "rgba(124,169,130,0.15)", border: "1px solid rgba(124,169,130,0.3)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" },
   logoText: { fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 20, color: "#F1F7ED" },
-  quoteWrap: { marginTop: "auto", marginBottom: "auto", paddingTop: 60 },
+  quoteWrap: { marginTop: 0, marginBottom: 0, paddingTop: 0 },
   quoteMark: { fontFamily: "'Playfair Display', serif", fontSize: 96, lineHeight: 0.8, color: "#7CA982", opacity: 0.4, marginBottom: 16 },
   quoteText: { fontFamily: "'Playfair Display', serif", fontSize: 26, lineHeight: 1.5, color: "#F1F7ED", fontStyle: "italic", maxWidth: 420, marginBottom: 20 },
   quoteAuthor: { fontSize: 13, color: "rgba(241,247,237,0.5)", fontWeight: 500 },
   floatCard: { position: "absolute", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(124,169,130,0.25)", borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, backdropFilter: "blur(8px)" },
   floatDot: { width: 8, height: 8, background: "#7CA982", borderRadius: "50%", display: "inline-block", flexShrink: 0 },
   floatLabel: { fontSize: 12, color: "rgba(241,247,237,0.75)", fontWeight: 500, whiteSpace: "nowrap" },
-  rightPanel: { width: "100%", maxWidth: 480, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 40px", background: "#F1F7ED" },
+  heroCardCenter: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 },
+  heroCardNavRow: { display: "flex", alignItems: "center", justifyContent: "center", gap: 16 },
+  heroCardNavBtn: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(124,169,130,0.3)", color: "#F1F7ED", width: 34, height: 34, borderRadius: "50%", fontSize: 17, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.2s" },
+  heroCardDots: { display: "flex", alignItems: "center", gap: 8 },
+  heroCardDot: { width: 7, height: 7, borderRadius: "50%", background: "rgba(124,169,130,0.35)", cursor: "pointer", transition: "background 0.3s, transform 0.3s" },
+  heroCardDotActive: { background: "#7CA982", transform: "scale(1.3)" },
+  heroCardWrap: { position: "relative", width: 420, height: 230, overflow: "hidden" },
+  heroCard: {
+    position: "absolute", inset: 0,
+    background: "rgba(255,255,255,0.07)",
+    border: "1px solid rgba(124,169,130,0.25)",
+    borderRadius: 16, padding: "28px 30px",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "left",
+    transition: "transform 1s cubic-bezier(0.4,0,0.2,1), opacity 1s ease",
+  },
+  heroCardIconRow: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  heroCardTag: { fontSize: 10.5, fontWeight: 700, color: "#c8ddc9", background: "rgba(124,169,130,0.2)", padding: "3px 10px", borderRadius: 99, textTransform: "uppercase", letterSpacing: "0.05em" },
+  heroCardTitle: { fontSize: 18, fontWeight: 700, color: "#F1F7ED", fontFamily: "'Playfair Display', serif", margin: "0 0 10px" },
+  heroCardDesc: { fontSize: 13.5, color: "rgba(241,247,237,0.65)", margin: 0, lineHeight: 1.6 },rightPanel: { width: "100%", maxWidth: 480, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 40px", background: "#F1F7ED" },
   formWrap: { width: "100%", maxWidth: 380 },
   heading: { fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 800, color: "#243E36", marginBottom: 8 },
   subheading: { fontSize: 15, color: "#5a7a6e", marginBottom: 28 },
@@ -355,8 +433,21 @@ const st = {
 };
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap');
-  .lms-input:focus { border-color: #7CA982 !important; box-shadow: 0 0 0 3px rgba(124,169,130,0.15); }
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap');
+      @keyframes logoPulseGlow {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(124,169,130,0.5); }
+        50%      { box-shadow: 0 0 0 6px rgba(124,169,130,0); }
+      }
+      .logo-glow-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        animation: logoPulseGlow 2.2s ease-in-out infinite;
+        flex-shrink: 0;
+      }
+      .lms-input:focus { border-color: #7CA982 !important; box-shadow: 0 0 0 3px rgba(124,169,130,0.15); }
   .submit-btn:hover:not(:disabled) { background: #1a2e28 !important; transform: translateY(-1px); }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner { animation: spin 0.75s linear infinite; }

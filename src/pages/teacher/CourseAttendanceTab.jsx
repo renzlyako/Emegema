@@ -103,7 +103,7 @@ function uid() {
 }
 
 // ─────────────────────────────────────────────
-// CONFIRM MODAL (centered popup, replaces window.confirm)
+// CONFIRM MODAL
 // ─────────────────────────────────────────────
 function ConfirmModal({ title, message, confirmLabel = "Confirm", onConfirm, onClose }) {
   useEffect(() => {
@@ -163,7 +163,6 @@ export default function CourseAttendanceTab({ course, teacherId }) {
     }
   };
 
-  // ── Load config from course row ──
   const loadConfig = useCallback(async () => {
     setLoading(true);
     try {
@@ -180,9 +179,6 @@ export default function CourseAttendanceTab({ course, teacherId }) {
       const legend = data.attendance_config?.legend || DEFAULT_CONFIG.legend;
       const cfg    = { terms, legend };
 
-      // Persist default terms to DB right away, so the student side
-      // (which reads courses.terms directly) sees the same terms
-      // the teacher is seeing — instead of only living in memory.
       if (needsTermsSave) {
         await supabase
           .from("courses")
@@ -640,7 +636,6 @@ function TermAttendancePanel({ course, termId, termLabel, legend, teacherId, onD
     }));
   };
 
-  // ADD this function inside TermAttendancePanel, before the return statement:
 const handleExport = () => {
   if (students.length === 0 || sessions.length === 0) return;
 
@@ -666,7 +661,6 @@ const handleExport = () => {
     ];
   });
 
-  // Add legend info at the bottom
   const legendInfo = ["", "LEGEND:"];
   legend.forEach(l => {
     legendInfo.push(`${l.id} = ${l.label} (${l.value} pts)`);
@@ -773,7 +767,6 @@ const handleExport = () => {
     onDirtyChange?.(true);
   };
 
-  // Find the max value in legend (for grade calculation reference)
   const maxLegendValue = Math.max(...legend.map(l => l.value), 1);
 
   if (loading) {

@@ -1,26 +1,20 @@
 // ─────────────────────────────────────────────
 // ESSAY SUBMIT MODAL
-// Add this component to StudentCoursePage.jsx
 // ─────────────────────────────────────────────
-// Import at top of StudentCoursePage.jsx (already exists):
-//   import { supabase } from "../../services/supabase";
-// import { useAuthStore } from "../../store/authStore";
 
 function EssaySubmitModal({ assignment, studentId, onClose, onSubmitted }) {
   const [answer,   setAnswer]   = useState("");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
-  const [existing, setExisting] = useState(null); // existing submission if any
+  const [existing, setExisting] = useState(null); 
 
   const wordCount = answer.trim().split(/\s+/).filter(Boolean).length;
 
-  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  // Load existing submission if student already submitted
   useEffect(() => {
     if (!studentId || !assignment?.id) return;
     supabase
@@ -44,14 +38,12 @@ function EssaySubmitModal({ assignment, studentId, onClose, onSubmitted }) {
 
     try {
       if (existing) {
-        // Update existing submission
         const { error: err } = await supabase
           .from("submissions")
           .update({ essay_answer: answer.trim(), status: "submitted" })
           .eq("id", existing.id);
         if (err) throw new Error(err.message);
       } else {
-        // Insert new submission
         const { error: err } = await supabase
           .from("submissions")
           .insert({
@@ -113,7 +105,7 @@ function EssaySubmitModal({ assignment, studentId, onClose, onSubmitted }) {
 
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* Prompt / Instructions */}
+          {}
           {assignment.description && (
             <div style={{ background: "#F1F7ED", borderRadius: 10, padding: "14px 16px", borderLeft: "3px solid #7CA982" }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#7CA982", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -125,7 +117,7 @@ function EssaySubmitModal({ assignment, studentId, onClose, onSubmitted }) {
             </div>
           )}
 
-          {/* Teacher feedback (if graded) */}
+          {}
           {isGraded && existing.feedback && (
             <div style={{ background: "#e8f3ea", borderRadius: 10, padding: "14px 16px" }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#1a5c30", marginBottom: 6 }}>Teacher's Feedback</p>
@@ -133,7 +125,7 @@ function EssaySubmitModal({ assignment, studentId, onClose, onSubmitted }) {
             </div>
           )}
 
-          {/* Essay text area */}
+          {}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#243E36" }}>

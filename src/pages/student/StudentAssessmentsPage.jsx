@@ -1,15 +1,6 @@
 // src/pages/student/StudentAssessmentsPage.jsx
-// ─────────────────────────────────────────────
-// DROP THIS FILE INTO: src/pages/student/StudentAssessmentsPage.jsx
-// Then import and use inside StudentDashboard.jsx
-// ─────────────────────────────────────────────
-
 import { useState, useEffect, useCallback } from "react";
-import {
-  BookOpen, Clock, Award, CheckCircle2, AlertCircle,
-  Loader2, RefreshCw, ChevronRight, FileText,
-  CheckSquare, Lock, Play,
-} from "lucide-react";
+import { BookOpen, Clock, Award, CheckCircle2, AlertCircle, Loader2, RefreshCw, ChevronRight, FileText, CheckSquare, Lock, Play, } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { getStudentAssessments } from "../../services/assessmentService";
 import StudentAssessmentTaker from "./StudentAssessmentTaker";
@@ -44,8 +35,8 @@ export default function StudentAssessmentsPage() {
   const [assessments,  setAssessments]  = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
-  const [filter,       setFilter]       = useState("all"); // all | pending | completed
-  const [taking,       setTaking]       = useState(null);  // assessment being taken
+  const [filter,       setFilter]       = useState("all"); 
+  const [taking,       setTaking]       = useState(null);  
 
   const fetchAssessments = useCallback(async () => {
     if (!user?.id) return;
@@ -59,7 +50,7 @@ export default function StudentAssessmentsPage() {
 
   useEffect(() => { fetchAssessments(); }, [fetchAssessments]);
 
-  // ── If taking an assessment, show the taker ──
+  
   if (taking) {
     return (
       <StudentAssessmentTaker
@@ -67,7 +58,7 @@ export default function StudentAssessmentsPage() {
         onBack={() => setTaking(null)}
         onDone={() => {
           setTaking(null);
-          fetchAssessments(); // refresh to show updated submission
+          fetchAssessments(); 
         }}
       />
     );
@@ -214,7 +205,7 @@ function AssessmentCard({ assessment: a, onTake }) {
         </div>
       </div>
 
-      {/* Right side — score or action */}
+      {}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
         {graded && pct !== null ? (
           <div style={{ textAlign: "center" }}>

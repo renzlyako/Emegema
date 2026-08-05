@@ -13,16 +13,15 @@ import ResetPasswordPage  from "./pages/auth/ResetPasswordPage";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import AdminDashboard   from "./pages/admin/AdminDashboard";
+import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
+import TermsPage         from "./pages/legal/TermsPage";
+import AccessibilityPage from "./pages/legal/AccessibilityPage";
 
 // Auth
 import ProtectedRoute   from "./routes/ProtectedRoute";
 import { useAuthStore } from "./store/authStore";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 
-// ─────────────────────────────────────────────
-// Root redirect — sends logged-in users to
-// their dashboard, others to landing page
-// ─────────────────────────────────────────────
 function RootRedirect() {
   const { user, profile, loading } = useAuthStore();
 
@@ -60,6 +59,11 @@ export default function App() {
 
         {/* ── Password reset (linked from email) ── */}
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* ── Legal pages ── */}
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/accessibility" element={<AccessibilityPage />} />
 
         {/* ── Student routes ── */}
         <Route path="/student/dashboard" element={

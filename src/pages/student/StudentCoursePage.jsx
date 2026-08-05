@@ -1,14 +1,7 @@
 // src/pages/student/StudentCoursePage.jsx
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  ArrowLeft, BookOpen, Users, FileText, Star,
-  Calendar, MessageSquare, Clock, ChevronRight,
-  CheckCircle2, AlertCircle, Loader2, RefreshCw,
-  TrendingUp, Award, ClipboardList, Play,
-  CheckSquare, GraduationCap, BookMarked, Edit3,
-  Link, ExternalLink, Globe,
-} from "lucide-react";
+import { ArrowLeft, BookOpen, Users, FileText, Star, Calendar, MessageSquare, Clock, ChevronRight, CheckCircle2, AlertCircle, Loader2, RefreshCw, TrendingUp, Award, ClipboardList, Play, CheckSquare, GraduationCap, BookMarked, Edit3, Link, ExternalLink, Globe, } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { supabase } from "../../services/supabase";
 import { getStudentAssessments } from "../../services/assessmentService";
@@ -18,7 +11,7 @@ import { getStudentAttendance, getCourseTerms } from "../../services/courseServi
 import { getLectures } from "../../services/lectureService";
 
 // ─────────────────────────────────────────────
-// SUBJECT ILLUSTRATION (unchanged)
+// SUBJECT ILLUSTRATION 
 // ─────────────────────────────────────────────
 function getSubjectStamps(subject) {
   const s = (subject || "").toLowerCase();
@@ -164,7 +157,7 @@ function SubjectIllustration({ subject }) {
 }
 
 // ─────────────────────────────────────────────
-// LINK PLATFORM DETECTOR (shared)
+// LINK PLATFORM DETECTOR 
 // ─────────────────────────────────────────────
 function getLinkPlatform(url = "") {
   if (!url) return { label: "Link", color: "#7c3aed" };
@@ -491,7 +484,6 @@ const fetchGrades = useCallback(async () => {
     getCourseTerms(course.id).then(setTerms).catch(() => {});
   }, [fetchAnnouncements, fetchAssignments, fetchAssessments, fetchGrades, fetchStats]);
 
-  // ── Project submission takes over ── NEW
   if (projectAssignment) {
     return (
       <ProjectSubmitModal
@@ -507,7 +499,7 @@ const fetchGrades = useCallback(async () => {
     );
   }
 
-  // ── Link submission takes over ──
+  
   if (linkAssignment) {
     return (
       <LinkSubmitModal
@@ -523,7 +515,7 @@ const fetchGrades = useCallback(async () => {
     );
   }
 
-  // ── Essay submission takes over ──
+  
   if (essayAssignment) {
     return (
       <EssaySubmitModal
@@ -539,7 +531,7 @@ const fetchGrades = useCallback(async () => {
     );
   }
 
-  // ── Assessment taker takes over ──
+  
   if (takingAssessment) {
     return (
       <StudentAssessmentTaker
@@ -1370,7 +1362,7 @@ function AttendanceTab({ attendance, loading, error, onRetry, color }) {
         ))}
       </div>
 
-      {/* ── Session records for active term ── */}
+      {}
       {currentTerm && (
         !currentTerm.configured ? (
           <div style={{ background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "32px 20px", textAlign: "center" }}>
@@ -1523,7 +1515,7 @@ function ScheduleTab({ course, assignments, assessments, loading, color }) {
 }
 
 // ─────────────────────────────────────────────
-// LINK SUBMIT MODAL  ← NEW
+// LINK SUBMIT MODAL
 // ─────────────────────────────────────────────
 function LinkSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
   const [url,      setUrl]      = useState("");
@@ -1540,7 +1532,6 @@ function LinkSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  // Load existing submission
   useEffect(() => {
     if (!studentId || !assignment?.id) return;
     setFetching(true);
@@ -1726,7 +1717,7 @@ function LinkSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
 }
 
 // ─────────────────────────────────────────────
-// PROJECT SUBMIT MODAL  ← NEW
+// PROJECT SUBMIT MODAL 
 // ─────────────────────────────────────────────
 function ProjectSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
   const [demoUrl,  setDemoUrl]  = useState("");
@@ -1786,7 +1777,6 @@ function ProjectSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
 
   const isGraded = existing?.status === "graded";
 
-  // Parse rubric breakdown from feedback (first line is "Label: x/y | Label2: x/y")
   let rubricBreakdown = [];
   let extraFeedback = existing?.feedback ?? "";
   if (isGraded && existing?.feedback && rubricCriteria.length > 0) {
@@ -1937,7 +1927,7 @@ function ProjectSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
 }
 
 // ─────────────────────────────────────────────
-// ESSAY SUBMIT MODAL (unchanged)
+// ESSAY SUBMIT MODAL
 // ─────────────────────────────────────────────
 function EssaySubmitModal({ assignment, studentId, onClose, onSubmitted }) {
   const [answer,   setAnswer]   = useState("");
@@ -1984,7 +1974,7 @@ function EssaySubmitModal({ assignment, studentId, onClose, onSubmitted }) {
     .from("submissions")
     .insert({ assignment_id: assignment.id, student_id: studentId, essay_answer: answer.trim(), status: "submitted" });
   if (err) throw new Error(err.message);
-  // Notify teacher of new submission
+  
   await notifyTeacherOnSubmission({ assignmentId: assignment.id, studentId, assignmentType: "essay" });
 }
 onSubmitted();

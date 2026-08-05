@@ -1,22 +1,8 @@
 // src/pages/teacher/CourseAssignmentsTab.jsx
-// Supports assignment_type: 'essay' | 'link' | 'project'
-// Fully implemented: essay, link, project
-// ─────────────────────────────────────────────
-
 import { useState, useEffect, useCallback } from "react";
-import {
-  Plus, X, Trash2, Send, Clock, Award, FileText,
-  AlertCircle, Loader2, RefreshCw, CheckCircle2,
-  Users, Star, MoreVertical, UserCheck, UserX, Eye,
-  AlignLeft, ChevronDown, ChevronUp, Link, ExternalLink,
-  Globe,
-} from "lucide-react";
+import { Plus, X, Trash2, Send, Clock, Award, FileText, AlertCircle, Loader2, RefreshCw, CheckCircle2, Users, Star, MoreVertical, UserCheck, UserX, Eye, AlignLeft, ChevronDown, ChevronUp, Link, ExternalLink, Globe, } from "lucide-react";
 import { supabase } from "../../services/supabase";
-import {
-  createAssignment,
-  deleteAssignment,
-  gradeSubmission,
-} from "../../services/teacherService";
+import { createAssignment, deleteAssignment, gradeSubmission, } from "../../services/teacherService";
 import { getCourseStudents, getCourseTerms } from "../../services/courseService";
 import { createPortal } from "react-dom";
 
@@ -107,7 +93,6 @@ function typeInfo(type) {
   return ASSIGNMENT_TYPES.find(t => t.value === type) ?? ASSIGNMENT_TYPES[0];
 }
 
-// Detect link platform for display
 function getLinkPlatform(url = "") {
   if (!url) return { label: "Link", color: "#7c3aed" };
   const u = url.toLowerCase();
@@ -213,7 +198,7 @@ export default function CourseAssignmentsTab({ course, teacherId, onGraded, onAs
         await deleteAssignment(id);
         setAssignments(prev => prev.filter(a => a.id !== id));
         onGraded?.();
-        onAssessmentChanged?.(); // ← notify gradebook to refresh
+        onAssessmentChanged?.(); 
       } catch (e) { alert(e.message); }
     },
   });
@@ -222,7 +207,7 @@ export default function CourseAssignmentsTab({ course, teacherId, onGraded, onAs
   const handleCreated = () => {
   setShowCreate(false);
   fetchAssignments();
-  onAssessmentChanged?.(); // ← notify gradebook to refresh
+  onAssessmentChanged?.(); 
 };
 
   if (viewingId) {
@@ -430,13 +415,10 @@ function SubmissionsView({ assignment: a, courseId, onBack, onGraded }) {
   const [rubricScores,  setRubricScores]  = useState({}); // { criterionId: score }
   const [saving,        setSaving]        = useState(false);
   const [expandedId,    setExpandedId]    = useState(null);
-
   const isEssay   = a?.assignment_type === "essay";
   const isLink    = a?.assignment_type === "link";
   const isProject = a?.assignment_type === "project";
   const info      = typeInfo(a?.assignment_type);
-
-  // Parse rubric criteria from assignment
   const rubricCriteria = (() => {
     try { return Array.isArray(a?.rubric_criteria) ? a.rubric_criteria : JSON.parse(a?.rubric_criteria || "[]"); }
     catch { return []; }
@@ -529,7 +511,7 @@ useEffect(() => {
     setGrading(sub);
     setGradeScore(sub.grade ?? "");
     setGradeFeedback(sub.feedback ?? "");
-    // Pre-fill rubric scores if previously graded
+    
     if (isProject && rubricCriteria.length > 0) {
       const initScores = {};
       rubricCriteria.forEach(c => { initScores[c.id] = ""; });
@@ -739,7 +721,6 @@ useEffect(() => {
           </div>
         )
       ) : (
-        // MISSING LIST
         missing.length === 0 ? (
           <div style={s.emptyState}>
             <div style={s.emptyIcon}><CheckCircle2 size={28} color="#7CA982" /></div>
@@ -998,7 +979,6 @@ function CreateAssignmentModal({ courseId, teacherId, onClose, onCreated }) {
       }
     }
 
-    // Check assignment count cap for this course
     const { count, error: countErr } = await supabase
       .from("assignments")
       .select("id", { count: "exact", head: true })
@@ -1040,7 +1020,6 @@ function CreateAssignmentModal({ courseId, teacherId, onClose, onCreated }) {
 
   const info = selType ? typeInfo(selType) : null;
 
-  // Dynamic placeholder text per type
   const descPlaceholder = selType === "essay"
     ? "Write the essay prompt here. Students will see this and write their response directly in the LMS…"
     : selType === "link"
@@ -1074,7 +1053,7 @@ function CreateAssignmentModal({ courseId, teacherId, onClose, onCreated }) {
           <button style={s.modalClose} onClick={onClose}><X size={18} /></button>
         </div>
 
-        {/* STEP 1: Pick type */}
+        {}
         {step === 1 && (
           <div style={{ padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
             {ASSIGNMENT_TYPES.map(t => (
@@ -1113,7 +1092,7 @@ function CreateAssignmentModal({ courseId, teacherId, onClose, onCreated }) {
           </div>
         )}
 
-        {/* STEP 2: Fill details */}
+        {}
         {step === 2 && (
           <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", flex: 1 }}>
             {error && (
@@ -1297,36 +1276,28 @@ const s = {
   sectionBtn:   { padding: "8px 20px", borderRadius: 9, border: "1.5px solid #e8f3ea", background: "#fff", color: "#5a7a6e", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 7, transition: "all 0.15s" },
   sectionBtnActive: { background: "#243E36", borderColor: "#243E36", color: "#fff" },
   expandBtn:    { background: "#F1F7ED", border: "1px solid #e8f3ea", borderRadius: 7, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "#5a7a6e" },
-
   errorBox:  { background: "#fce8e8", border: "1px solid #f5c6c6", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 },
   retryBtn:  { background: "none", border: "1px solid #f5c6c6", borderRadius: 6, padding: "3px 8px", fontSize: 12, color: "#8b2020", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 4 },
-
   termTabs:      { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" },
   termTab:       { position: "relative", padding: "8px 20px", borderRadius: 9, border: "1.5px solid #e8f3ea", background: "#fff", color: "#5a7a6e", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" },
   termTabActive: { background: "#243E36", borderColor: "#243E36", color: "#fff" },
   termBadge: { position: "absolute", top: -6, right: -6, background: "#e05252", color: "#fff", fontSize: 10, fontWeight: 700, minWidth: 17, height: 17, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" },
-
   emptyState: { display: "flex", flexDirection: "column", alignItems: "center", padding: "64px 20px", gap: 10 },
   emptyIcon:  { width: 64, height: 64, background: "#e8f3ea", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 },
   emptyTitle: { fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "#243E36" },
   emptySub:   { fontSize: 13, color: "#9ab5a0", textAlign: "center", maxWidth: 280, marginBottom: 8 },
-
   assignCard:   { background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "16px 20px", display: "flex", gap: 16, alignItems: "flex-start" },
   assignAccent: { width: 4, borderRadius: 99, alignSelf: "stretch", flexShrink: 0, minHeight: 60 },
   assignStat:   { display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#9ab5a0" },
   statusPill:   { fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99, display: "flex", alignItems: "center", gap: 4 },
-
   menuBtn:   { background: "none", border: "1px solid #e8f3ea", borderRadius: 7, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center", color: "#9ab5a0" },
   menuDrop:  { position: "absolute", right: 0, top: "calc(100% + 6px)", background: "#fff", border: "1px solid #e8f3ea", borderRadius: 10, boxShadow: "0 8px 24px rgba(36,62,54,0.12)", zIndex: 50, minWidth: 130, overflow: "hidden" },
   menuItem:  { display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", fontSize: 13, color: "#5a7a6e", background: "none", border: "none", cursor: "pointer", width: "100%", fontFamily: "'DM Sans', sans-serif", textAlign: "left" },
-
   subCard:    { background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, display: "flex", alignItems: "center", gap: 14, padding: "14px 18px" },
   miniAvatar: { width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 },
-
   fieldGroup: { display: "flex", flexDirection: "column", gap: 6 },
   label:      { fontSize: 13, fontWeight: 600, color: "#243E36" },
   input:      { width: "100%", padding: "10px 14px", borderRadius: 9, border: "1.5px solid #c8ddc9", background: "#fff", fontSize: 14, color: "#243E36", outline: "none", fontFamily: "'DM Sans', sans-serif", transition: "border-color 0.2s, box-shadow 0.2s", boxSizing: "border-box" },
-
   modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, minHeight: "100vh", minWidth: "100vw", background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" },
   modal:        { background: "#fff", borderRadius: 16, width: "100%", maxWidth: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.2)", maxHeight: "92vh", display: "flex", flexDirection: "column" },
   modalHead:    { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "20px 24px", borderBottom: "1px solid #e8f3ea", position: "sticky", top: 0, background: "#fff", zIndex: 1 },
