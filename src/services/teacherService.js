@@ -1,8 +1,4 @@
 // src/services/teacherService.js
-// ─────────────────────────────────────────────
-// DROP THIS FILE INTO: src/services/teacherService.js
-// ─────────────────────────────────────────────
-
 import { supabase } from "./supabase";
 import { getCourseTerms } from "./courseService";
 
@@ -419,7 +415,7 @@ export async function getTeacherStudents(teacherId) {
 // ─────────────────────────────────────────────
 
 export async function getTeacherGradebook(teacherId) {
-  // 1. Get active courses
+
   const { data: courses, error: courseErr } = await supabase
     .from("courses")
     .select("id, title, cover_color, subject")
@@ -432,7 +428,6 @@ export async function getTeacherGradebook(teacherId) {
 
   const courseIds = courses.map(c => c.id);
 
-  // 2. Get all assignments per course
   const { data: assignments, error: assignErr } = await supabase
     .from("assignments")
     .select("id, title, course_id, max_points, assignment_type, term_id")
@@ -442,7 +437,6 @@ export async function getTeacherGradebook(teacherId) {
 
   if (assignErr) throw new Error(assignErr.message);
 
-  // 3. Get all assessments per course — uses max_points NOT total_points
   const { data: assessments, error: assessErr } = await supabase
     .from("assessments")
     .select("id, title, course_id, max_points, type, term_id")
@@ -451,7 +445,6 @@ export async function getTeacherGradebook(teacherId) {
 
   if (assessErr) throw new Error(assessErr.message);
 
-  // 4. Get gradebook configs per course
   const { data: configs } = await supabase
     .from("gradebook_config")
     .select("*")
@@ -460,7 +453,6 @@ export async function getTeacherGradebook(teacherId) {
   const configMap = {};
   (configs || []).forEach(c => { configMap[c.course_id] = c; });
 
-  // 5. Get enrolled students per course
   const { data: enrollments, error: enrollErr } = await supabase
     .from("enrollments")
     .select(`
@@ -472,7 +464,6 @@ export async function getTeacherGradebook(teacherId) {
 
   if (enrollErr) throw new Error(enrollErr.message);
 
-  // 6. Get all assignment submissions (graded only)
   const assignmentIds = (assignments || []).map(a => a.id);
   let assignmentSubmissions = [];
   if (assignmentIds.length > 0) {
@@ -484,7 +475,6 @@ export async function getTeacherGradebook(teacherId) {
     assignmentSubmissions = subs || [];
   }
 
-  // 7. Get all assessment submissions
   const assessmentIds = (assessments || []).map(a => a.id);
   let assessmentSubmissions = [];
   if (assessmentIds.length > 0) {
@@ -495,21 +485,17 @@ export async function getTeacherGradebook(teacherId) {
     assessmentSubmissions = asubs || [];
   }
 
-  // 8. Get manual scores
   const { data: manualScores } = await supabase
     .from("gradebook_manual_scores")
     .select("student_id, course_id, recitation_score, attendance_score")
     .in("course_id", courseIds);
 
-  // Build assignment max points map
   const assignMaxMap = {};
   (assignments || []).forEach(a => { assignMaxMap[a.id] = a.max_points || 100; });
 
-  // Build assessment max points map
   const assessMaxMap = {};
   (assessments || []).forEach(a => { assessMaxMap[a.id] = a.max_points || 100; });
 
-  // Build assignSubMap: { assignmentId: { studentId: { grade, maxPoints, date } } }
   const assignSubMap = {};
   assignmentSubmissions.forEach(s => {
     if (!assignSubMap[s.assignment_id]) assignSubMap[s.assignment_id] = {};
@@ -520,7 +506,6 @@ export async function getTeacherGradebook(teacherId) {
     };
   });
 
-  // Build assessSubMap: { assessmentId: { studentId: { score, maxScore, date } } }
   const assessSubMap = {};
   assessmentSubmissions.forEach(s => {
     if (!assessSubMap[s.assessment_id]) assessSubMap[s.assessment_id] = {};
@@ -531,7 +516,6 @@ export async function getTeacherGradebook(teacherId) {
     };
   });
 
-  // Build manualMap: { courseId: { studentId: { recitation, attendance } } }
   const manualMap = {};
   (manualScores || []).forEach(m => {
     if (!manualMap[m.course_id]) manualMap[m.course_id] = {};
@@ -541,14 +525,12 @@ export async function getTeacherGradebook(teacherId) {
     };
   });
 
-  // Fetch terms per course (shared source: courses.terms — see getCourseTerms)
   const termsResults = await Promise.all(
     courseIds.map(id => getCourseTerms(id).catch(() => []))
   );
   const termsMap = {};
   courseIds.forEach((id, i) => { termsMap[id] = termsResults[i]; });
 
-  // Build per-course data
   const courseData = {};
   courses.forEach(course => {
     const cid = course.id;
@@ -690,14 +672,10 @@ export async function getTeacherAnnouncements(teacherId) {
 
 // ─────────────────────────────────────────────
 // POST ANNOUNCEMENT
-// ── NEW: also sends notifications to all enrolled students ──
 // ─────────────────────────────────────────────
 const MAX_ANNOUNCEMENTS_PER_HOUR = 15;
 
 export async function postAnnouncement({ authorId, title, content, courseId = null, isGlobal = false }) {
-  // ── RATE LIMIT: max 15 announcements per hour per teacher ──
-  // Protects against notification-spam, since each global announcement
-  // can fan out to hundreds of students at once.
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { count: recentCount, error: rateLimitErr } = await supabase
     .from("announcements")
@@ -709,7 +687,6 @@ export async function postAnnouncement({ authorId, title, content, courseId = nu
     throw new Error(`You've reached the limit of ${MAX_ANNOUNCEMENTS_PER_HOUR} announcements per hour. Please wait before posting more.`);
   }
 
-  // 1. Insert the announcement
   const { data: announcement, error } = await supabase
     .from("announcements")
     .insert({
@@ -728,7 +705,7 @@ export async function postAnnouncement({ authorId, title, content, courseId = nu
     let studentIds = [];
 
     if (isGlobal) {
-      // Notify all students across all of this teacher's courses
+
       const { data: courses } = await supabase
         .from("courses")
         .select("id")
@@ -746,7 +723,7 @@ export async function postAnnouncement({ authorId, title, content, courseId = nu
         studentIds = [...new Set((enrollments || []).map(e => e.student_id))];
       }
     } else if (courseId) {
-      // Notify only students enrolled in this course
+     
       const { data: enrollments } = await supabase
         .from("enrollments")
         .select("student_id")
@@ -756,7 +733,6 @@ export async function postAnnouncement({ authorId, title, content, courseId = nu
       studentIds = (enrollments || []).map(e => e.student_id);
     }
 
-    // 3. Batch insert notifications for all target students
     if (studentIds.length > 0) {
       const notifications = studentIds.map(studentId => ({
         user_id:    studentId,
@@ -768,7 +744,6 @@ export async function postAnnouncement({ authorId, title, content, courseId = nu
       }));
 
       await supabase.from("notifications").insert(notifications);
-      // Non-critical — don't throw if this fails
     }
   } catch (notifError) {
     console.warn("Notification insert failed (non-critical):", notifError.message);
@@ -828,17 +803,15 @@ export async function notifyTeacherOnSubmission({ assignmentId, studentId, assig
 
 // ─────────────────────────────────────────────
 // GRADE SUBMISSION (assignments)
-// ── NEW: sends a notification to the student ──
 // ─────────────────────────────────────────────
 export async function gradeSubmission({ submissionId, grade, feedback }) {
-  // Capture the previous grade before overwriting it, for the audit trail.
+  
   const { data: previous } = await supabase
     .from("submissions")
     .select("grade, status")
     .eq("id", submissionId)
     .single();
 
-  // 1. Grade the submission
   const { data: submission, error } = await supabase
     .from("submissions")
     .update({
@@ -856,8 +829,6 @@ export async function gradeSubmission({ submissionId, grade, feedback }) {
 
   if (error) throw new Error(error.message);
 
-  // 1b. Log to audit trail. Non-fatal — the grade itself already saved,
-  // so a logging hiccup shouldn't surface as an error to the teacher.
   try {
     const { data: { user: actor } } = await supabase.auth.getUser();
     if (actor) {
@@ -887,7 +858,6 @@ export async function gradeSubmission({ submissionId, grade, feedback }) {
     console.warn("Audit log insert failed (non-critical):", auditErr.message);
   }
 
-  // 2. Notify the student
   try {
     const assignmentTitle = submission.assignments?.title ?? "your assignment";
     const maxPoints       = submission.assignments?.max_points ?? 100;

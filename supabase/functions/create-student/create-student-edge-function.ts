@@ -1,10 +1,3 @@
-// supabase/functions/create-student/index.ts
-//
-// Deploy with: supabase functions deploy create-student
-//
-// DEBUG VERSION — has console.log at every step so we can see
-// exactly what's happening in the Supabase Dashboard → Edge Functions → Logs tab.
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 

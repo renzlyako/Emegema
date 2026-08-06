@@ -1,14 +1,7 @@
 // src/services/adminService.js
-// ─────────────────────────────────────────────
-// DROP THIS FILE INTO: src/services/adminService.js
-// ─────────────────────────────────────────────
 
 import { supabase } from "./supabase";
 
-// ─────────────────────────────────────────────
-// GET ADMIN PROFILE
-// Returns the logged-in admin's profile row.
-// ─────────────────────────────────────────────
 export async function getAdminProfile(userId) {
   const { data, error } = await supabase
     .from("profiles")
@@ -20,18 +13,6 @@ export async function getAdminProfile(userId) {
   return data;
 }
 
-// ─────────────────────────────────────────────
-// GET OVERVIEW STATS
-// Returns the 4 stat cards on the overview page.
-//
-// Returns:
-// {
-//   totalUsers: number,
-//   activeCourses: number,
-//   submissionsToday: number,
-//   pendingUsers: number,
-// }
-// ─────────────────────────────────────────────
 export async function getAdminOverviewStats() {
   // Total users
   const { count: totalUsers } = await supabase
@@ -66,17 +47,6 @@ export async function getAdminOverviewStats() {
   };
 }
 
-// ─────────────────────────────────────────────
-// GET ALL USERS
-// Returns all profiles for user management table.
-//
-// Shape per user:
-// {
-//   id, full_name, email, role, status, created_at,
-//   initials: string,
-//   courseCount: number,
-// }
-// ─────────────────────────────────────────────
 export async function getAdminUsers() {
   const { data: profiles, error } = await supabase
     .from("profiles")
@@ -134,8 +104,6 @@ export async function getAdminUsers() {
 
 // ─────────────────────────────────────────────
 // UPDATE USER STATUS
-// Used to approve, suspend, or reactivate users.
-// status: "active" | "suspended" | "pending"
 // ─────────────────────────────────────────────
 export async function updateUserStatus(userId, status, targetName = null, previousStatus = null) {
   const { error } = await supabase
@@ -145,8 +113,6 @@ export async function updateUserStatus(userId, status, targetName = null, previo
 
   if (error) throw new Error(error.message);
 
-  // Log to audit trail. Non-fatal — the status change itself already
-  // succeeded, so we don't want a logging hiccup to surface as an error.
   const { data: { user: actor } } = await supabase.auth.getUser();
   if (actor) {
     const { data: actorProfile } = await supabase
@@ -196,11 +162,6 @@ export async function deleteUser(userId) {
 
 // ─────────────────────────────────────────────
 // CREATE USER (Admin Add User)
-// Creates a real Supabase Auth account AND a
-// profiles row. Uses signUp so the user gets
-// a confirmation email.
-//
-// Returns the new profile row.
 // ─────────────────────────────────────────────
 export async function adminCreateUser({ fullName, email, password, role }) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -212,8 +173,7 @@ export async function adminCreateUser({ fullName, email, password, role }) {
   });
  
   if (error) {
-    // supabase-js gives a generic message for non-2xx responses — the real
-    // error text lives in the response body via error.context.
+
     let message = error.message || "Failed to create user.";
     try {
       if (error.context) {
@@ -221,7 +181,7 @@ export async function adminCreateUser({ fullName, email, password, role }) {
         if (body?.error) message = body.error;
       }
     } catch (_) {
-      // context wasn't valid JSON — fall back to the generic message
+
     }
     throw new Error(message);
   }
@@ -230,19 +190,6 @@ export async function adminCreateUser({ fullName, email, password, role }) {
   return data.user;
 }
 
-// ─────────────────────────────────────────────
-// GET ALL COURSES (admin view)
-// Returns all courses with teacher name and
-// enrolled student count.
-//
-// Shape per course:
-// {
-//   id, title, subject, schedule, cover_color,
-//   status, created_at,
-//   teacherName: string,
-//   studentCount: number,
-// }
-// ─────────────────────────────────────────────
 export async function getAdminCourses() {
   const { data: courses, error } = await supabase
     .from("courses")
@@ -284,7 +231,6 @@ export async function getAdminCourses() {
 
 // ─────────────────────────────────────────────
 // UPDATE COURSE STATUS
-// archive or reactivate a course
 // ─────────────────────────────────────────────
 export async function updateCourseStatus(courseId, status) {
   const { error } = await supabase
@@ -309,15 +255,6 @@ export async function deleteCourse(courseId) {
 
 // ─────────────────────────────────────────────
 // GET REPORT STATS
-// Platform-wide aggregate numbers for reports.
-//
-// Returns:
-// {
-//   totalStudents, totalTeachers, totalCourses,
-//   avgGrade, totalSubmissions, activeToday,
-//   roleBreakdown: [{ label, count, pct, color }],
-//   gradeBreakdown: [{ label, count, pct, color }],
-// }
 // ─────────────────────────────────────────────
 export async function getAdminReportStats() {
   // User counts by role
@@ -392,13 +329,6 @@ export async function getAdminReportStats() {
 
 // ─────────────────────────────────────────────
 // GET RECENT ACTIVITY
-// Pulls recent events from multiple tables and
-// merges them into a single chronological log.
-//
-// Shape per entry:
-// {
-//   id, text, time, color, type
-// }
 // ─────────────────────────────────────────────
 export async function getAdminRecentActivity() {
   const events = [];
@@ -475,7 +405,6 @@ export async function getAdminRecentActivity() {
     });
   });
 
-  // Sort by time descending, take top 12
   return events
     .sort((a, b) => new Date(b.time) - new Date(a.time))
     .slice(0, 12)
@@ -507,9 +436,6 @@ export async function getAuditLog(limit = 100) {
 
 // ─────────────────────────────────────────────
 // ADMIN: GET TEACHER'S STUDENT BREAKDOWN
-// Splits a teacher's students into two groups:
-// - students they personally created (created_by)
-// - students who joined their course(s) via join code
 // ─────────────────────────────────────────────
 export async function getTeacherStudentBreakdown(teacherId) {
   // Get this teacher's courses
@@ -522,8 +448,6 @@ export async function getTeacherStudentBreakdown(teacherId) {
   if (courseErr) throw new Error(courseErr.message);
   const courseIds = (courses || []).map(c => c.id);
 
-  // For each course, split ACTUAL enrolled students into two buckets:
-  // "created" (profiles.created_by = this teacher) vs "joined" (everyone else)
   let courseList = (courses || []).map(c => ({ id: c.id, title: c.title, created: [], joined: [] }));
 
   if (courseIds.length > 0) {

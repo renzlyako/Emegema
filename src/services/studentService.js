@@ -36,7 +36,7 @@ export async function getStudentCourses(userId) {
 }
 
 export async function getStudentAssignments(userId) {
-  // Step 1: get course IDs
+
   const { data: enrollments, error: enrollErr } = await supabase
     .from("enrollments")
     .select("course_id")
@@ -47,7 +47,7 @@ export async function getStudentAssignments(userId) {
 
   const courseIds = enrollments.map((e) => e.course_id);
 
-  // Step 2: get assignments
+
   const { data: assignments, error: assignErr } = await supabase
     .from("assignments")
     .select(`
@@ -61,7 +61,7 @@ export async function getStudentAssignments(userId) {
   if (assignErr) throw new Error(assignErr.message);
   if (!assignments || assignments.length === 0) return [];
 
-  // Step 3: get submissions
+
   const assignmentIds = assignments.map((a) => a.id);
   const { data: submissions, error: subErr } = await supabase
     .from("submissions")
@@ -70,7 +70,7 @@ export async function getStudentAssignments(userId) {
     .in("assignment_id", assignmentIds);
   if (subErr) throw new Error(subErr.message);
 
-  // Step 4: map
+
   const submissionMap = {};
   (submissions || []).forEach((sub) => { submissionMap[sub.assignment_id] = sub; });
 
@@ -128,7 +128,7 @@ export async function markAnnouncementsRead(userId, announcementIds) {
           related_id: id,
           is_read:    true,
         })
-        .select(); // ignore duplicate errors silently
+        .select(); 
     }
   } catch (_) {}
 }
@@ -161,7 +161,6 @@ export async function getStudentAnnouncements(userId) {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  // Fetch which announcements this student has already read
 const announcementIds = (data || []).map(a => a.id);
 let readIds = new Set();
 if (announcementIds.length > 0) {
@@ -180,7 +179,7 @@ return (data || []).map((a) => ({
   content:    a.content,
   created_at: a.created_at,
   is_global:  a.is_global,
-  is_read:    readIds.has(a.id),   // ← now uses real DB data
+  is_read:    readIds.has(a.id),  
   authorName: a.profiles?.full_name ?? "EduSpace",
   courseName: a.courses?.title ?? null,
 }));

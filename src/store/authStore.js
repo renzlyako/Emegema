@@ -25,9 +25,6 @@ export const useAuthStore = create((set) => ({
           return;
         }
 
-        // Update last_active_at whenever the app loads with a valid session
-        // (covers both fresh logins and persisted/restored sessions).
-        // Non-fatal if it fails.
         try {
           await supabase
             .from("profiles")
@@ -60,7 +57,6 @@ export const useAuthStore = create((set) => ({
       .eq("id", data.user.id)
       .single();
 
-    // Block suspended accounts from logging in
     if (profile?.status === "suspended") {
       await supabase.auth.signOut();
       set({ user: null, profile: null, loading: false });
@@ -70,8 +66,6 @@ export const useAuthStore = create((set) => ({
       };
     }
 
-    // Update last_active_at on successful login. Non-fatal if it fails —
-    // login should never be blocked by this.
     try {
       await supabase
         .from("profiles")

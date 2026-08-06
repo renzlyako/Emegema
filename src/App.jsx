@@ -1,7 +1,4 @@
 // src/App.jsx
-// ─────────────────────────────────────────────
-// REPLACE your entire src/App.jsx with this file
-// ─────────────────────────────────────────────
 
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";

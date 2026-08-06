@@ -1,14 +1,7 @@
 // src/services/courseService.js
-// ─────────────────────────────────────────────
-// DROP THIS FILE INTO: src/services/courseService.js
-// ─────────────────────────────────────────────
 
 import { supabase } from "./supabase";
 
-// ─────────────────────────────────────────────
-// HELPER: Generate a random join code
-// Format: ABC-1234  (3 letters + 4 digits)
-// ─────────────────────────────────────────────
 function generateJoinCode() {
   const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I or O to avoid confusion
   const digits  = "0123456789";
@@ -54,7 +47,7 @@ const DEFAULT_ATTENDANCE_LEGEND = [
 
 export async function getStudentAttendance(courseId, studentId) {
   try {
-    // Get course terms (from courses.terms) + legend (from attendance_config.legend)
+    
     const { data: courseData } = await supabase
       .from("courses")
       .select("terms, attendance_config")
@@ -232,7 +225,6 @@ export async function getTeacherCourses(userId) {
     pendingCount[cId] = (pendingCount[cId] || 0) + 1;
   });
 
-  // ── Assessments pending grading (mirrors assignments logic above) ──
   const { data: assessments, error: assessErr } = await supabase
     .from("assessments")
     .select("id, course_id")
@@ -273,7 +265,7 @@ export async function getTeacherCourses(userId) {
 }
 
 // ─────────────────────────────────────────────
-// TEACHER: CREATE COURSE (auto-generates join code)
+// TEACHER: CREATE COURSE
 // ─────────────────────────────────────────────
 export async function createCourse({ teacherId, title, subject, description, schedule, coverColor = "#243E36" }) {
   let joinCode = generateJoinCode();
@@ -579,7 +571,7 @@ export async function getCourseStudents(courseId) {
 }
 
 // ─────────────────────────────────────────────
-// TEACHER: GET ALL STUDENTS (for manual enroll picker)
+// TEACHER: GET ALL STUDENTS
 // ─────────────────────────────────────────────
 export async function getAllStudents(teacherId) {
   const { data, error } = await supabase

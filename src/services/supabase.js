@@ -1,8 +1,4 @@
 // src/services/supabase.js
-// ─────────────────────────────────────────────
-// DROP THIS FILE INTO: src/services/supabase.js
-// (Create the "services" folder inside src/ if it doesn't exist)
-// ─────────────────────────────────────────────
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -18,9 +14,9 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    persistSession:    true,   // keep user logged in on refresh
-    autoRefreshToken:  true,   // auto-renew JWT before expiry
-    detectSessionInUrl: true,  // handle email confirm links
+    persistSession:    true,  
+    autoRefreshToken:  true,   
+    detectSessionInUrl: true,  
   },
 });
 

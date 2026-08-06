@@ -1,8 +1,4 @@
 // src/services/assessmentService.js
-// ─────────────────────────────────────────────
-// DROP THIS FILE INTO: src/services/assessmentService.js
-// ─────────────────────────────────────────────
-
 import { supabase } from "./supabase";
 import { getCourseStudents } from "./courseService";
 
@@ -120,7 +116,7 @@ export async function deleteAssessment(assessmentId) {
 }
 
 // ─────────────────────────────────────────────
-// TEACHER: SAVE QUESTIONS (bulk replace)
+// TEACHER: SAVE QUESTIONS
 // ─────────────────────────────────────────────
 const MAX_QUESTIONS_PER_ASSESSMENT = 100;
 const MIN_POINTS_PER_QUESTION = 1;
@@ -312,9 +308,6 @@ export async function getQuestionsForStudent(assessmentId) {
 
 // ─────────────────────────────────────────────
 // STUDENT: SUBMIT ASSESSMENT
-// Saves the submission row only.
-// Notifications are sent via sendAssessmentNotifications()
-// called separately so double-submit doesn't double-notify.
 // ─────────────────────────────────────────────
 export async function submitAssessment(assessmentId, studentId, answers, questions) {
   let score    = 0;
@@ -355,9 +348,6 @@ export async function submitAssessment(assessmentId, studentId, answers, questio
 
 // ─────────────────────────────────────────────
 // STUDENT: SEND ASSESSMENT NOTIFICATIONS
-// Call this ONCE after a successful submitAssessment.
-// Separated so double-submit in ResultsScreen doesn't
-// double-insert notifications.
 // ─────────────────────────────────────────────
 export async function sendAssessmentNotifications(assessmentId, studentId, score, maxScore, status) {
   try {
@@ -461,7 +451,6 @@ export async function getAssessmentSubmissions(assessmentId) {
 
 // ─────────────────────────────────────────────
 // TEACHER: GRADE A SUBMISSION MANUALLY
-// Notifies student when teacher grades
 // ─────────────────────────────────────────────
 export async function gradeSubmission(submissionId, score, feedback, manualScores = null) {
   // Capture the previous score before overwriting it, for the audit trail.
@@ -492,8 +481,6 @@ export async function gradeSubmission(submissionId, score, feedback, manualScore
 
   if (error) throw new Error(error.message);
 
-  // Log to audit trail. Non-fatal — the grade itself already saved,
-  // so a logging hiccup shouldn't surface as an error to the teacher.
   try {
     const { data: { user: actor } } = await supabase.auth.getUser();
     if (actor) {
@@ -545,8 +532,6 @@ export async function gradeSubmission(submissionId, score, feedback, manualScore
 
 // ─────────────────────────────────────────────
 // STUDENT: GET OR CREATE IN-PROGRESS ATTEMPT
-// Ginagamit para ma-resume ang sagot + oras pagkatapos ng
-// disconnect/brownout, sa halip na mawala lahat.
 // ─────────────────────────────────────────────
 export async function getOrCreateAttempt(assessmentId, studentId) {
   const { data: existing, error: fetchErr } = await supabase
@@ -572,8 +557,6 @@ export async function getOrCreateAttempt(assessmentId, studentId) {
 
 // ─────────────────────────────────────────────
 // STUDENT: AUTOSAVE PROGRESS
-// Tinatawag paminsan-minsan / kada sagot / kada lipat ng tanong.
-// Non-fatal kung mag-fail — hindi dapat maistorbo ang exam.
 // ─────────────────────────────────────────────
 export async function saveAttemptProgress(attemptId, answers, currentIndex) {
   if (!attemptId) return;
@@ -588,7 +571,7 @@ export async function saveAttemptProgress(attemptId, answers, currentIndex) {
 }
 
 // ─────────────────────────────────────────────
-// STUDENT: MARK ATTEMPT AS DONE (cleanup pagkatapos ng final submit)
+// STUDENT: MARK ATTEMPT AS DONE 
 // ─────────────────────────────────────────────
 export async function completeAttempt(attemptId) {
   if (!attemptId) return;
@@ -601,7 +584,6 @@ export async function completeAttempt(attemptId) {
 
 // ─────────────────────────────────────────────
 // TEACHER: GET ALL ASSESSMENTS ACROSS ALL OWN COURSES
-// (kasama ang archived courses — para sa duplicate feature)
 // ─────────────────────────────────────────────
 export async function getTeacherAssessmentsForDuplication(teacherId) {
   const { data, error } = await supabase

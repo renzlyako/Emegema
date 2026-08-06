@@ -104,7 +104,6 @@ export async function exportSingleStudentDocx(assessment, questions, submission)
   saveAs(blob, `${assessment.title}_${submission.studentName}.docx`.replace(/\s+/g, "_"));
 }
 
-// ── Export ALL students' assessments (one file, page per student) ──
 export async function exportAllStudentsDocx(assessment, questions, submissions) {
   const sections = submissions.map(sub => ({ children: buildStudentSection(assessment, questions, sub) }));
   const doc = new Document({ sections });
