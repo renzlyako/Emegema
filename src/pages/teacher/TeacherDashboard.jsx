@@ -2606,12 +2606,6 @@ function ChangePasswordModal({ onClose }) {
 
     setLoading(true);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword,
-      });
-      if (signInError) { setError("Current password is incorrect."); setLoading(false); return; }
-
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) { setError(updateError.message); setLoading(false); return; }
 
