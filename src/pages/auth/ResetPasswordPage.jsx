@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { supabase } from "../../services/supabase";
+import logo from "../../assets/logo.png";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -14,18 +15,39 @@ export default function ResetPasswordPage() {
   const [success,         setSuccess]         = useState(false);
   const [validSession,    setValidSession]    = useState(false);
   const [checking,        setChecking]        = useState(true);
+  const [linkError,       setLinkError]       = useState("");
 
   
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // Basahin muna kung may error sa URL hash (e.g. expired/invalid link)
+    const hash = window.location.hash;
+    if (hash.includes("error=")) {
+      const params = new URLSearchParams(hash.substring(1));
+      const desc = params.get("error_description");
+      setLinkError(
+        desc
+          ? decodeURIComponent(desc.replace(/\+/g, " "))
+          : "This password reset link is invalid or has expired."
+      );
+      setChecking(false);
+      return;
+    }
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setValidSession(true);
         setChecking(false);
       }
     });
 
-    
-    setTimeout(() => setChecking(false), 2000);
+    const timeout = setTimeout(() => {
+      setChecking(false);
+    }, 2000);
+
+    return () => {
+      listener?.subscription?.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleReset = async () => {
@@ -54,13 +76,30 @@ export default function ResetPasswordPage() {
       <div style={r.card} className="form-wrap">
         {/* Logo */}
         <div style={r.logo}>
-          <div style={r.logoIcon}><BookOpen size={18} color="#7CA982" /></div>
-          <span style={r.logoText}>EduSpace</span>
+          <div style={r.logoIcon}>
+            <img src={logo} alt="EMEGEMA logo" style={{ width: 22, height: 22, objectFit: "contain" }} />
+          </div>
+          <span style={r.logoText}>EMEGEMA</span>
         </div>
 
         {checking ? (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
             <p style={{ fontSize: 14, color: "#9ab5a0" }}>Verifying reset link…</p>
+          </div>
+        ) : linkError ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "24px 0 8px" }}>
+            <div style={{ width: 64, height: 64, background: "#fce8e8", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AlertCircle size={32} color="#e05252" />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 800, color: "#243E36", marginBottom: 8 }}>Link Expired or Invalid</p>
+              <p style={{ fontSize: 14, color: "#5a7a6e", lineHeight: 1.6 }}>{linkError}</p>
+            </div>
+            <button onClick={() => navigate("/login")}
+              style={{ ...r.submitBtn, width: "100%", marginTop: 8 }}
+              className="submit-btn">
+              ← Back to Login
+            </button>
           </div>
         ) : success ? (
           

@@ -45,12 +45,13 @@ const HERO_ICON_MAP = {
 export default function LoginPage() {
   const navigate = useNavigate();
   const signIn   = useAuthStore(state => state.signIn);
-  const { user, profile } = useAuthStore();
+  const { user, profile, isRecovering } = useAuthStore();
   const [searchParams] = useSearchParams();
   const loggedOutFromInactivity = searchParams.get("reason") === "inactivity";
 
-  // Redirect if already logged in
+ 
   useEffect(() => {
+    if (isRecovering) return; 
     if (user && profile) {
       const redirect = {
         admin:   "/admin/dashboard",
@@ -261,9 +262,7 @@ function ForgotPasswordModal({ onClose }) {
 
         {/* Header */}
         <div style={fm.header}>
-          <div style={fm.headerIcon}>
-            <BookOpen size={20} color="#7CA982" />
-          </div>
+          <img src={logo} alt="EMEGEMA logo" style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <h2 style={fm.title}>Reset Password</h2>
             <p style={fm.subtitle}>We'll send a reset link to your email</p>
@@ -317,7 +316,7 @@ function ForgotPasswordModal({ onClose }) {
                 autoFocus
               />
               <p style={{ fontSize: 12, color: "#9ab5a0", marginTop: 8, lineHeight: 1.5 }}>
-                Enter the email address linked to your EduSpace account.
+                Enter the email address linked to your EMEGEMA account.
               </p>
             </div>
  
