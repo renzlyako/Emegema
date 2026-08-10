@@ -1867,6 +1867,9 @@ function CreateAssessmentModal({ courseId, teacherId, onClose, onCreated }) {
                 <p style={{ fontSize: 11, color: "rgba(241,247,237,0.65)", marginTop: 2 }}>Auto & manual grading supported</p>
               </div>
             </div>
+            <p style={{ fontSize: 11, color: "#9ab5a0", marginTop: 4, lineHeight: 1.5 }}>
+              💡 After creating, go to <strong>Gradebook → Setup Gradebook</strong> to categorize this as a Quiz, Exam, or Activity for grade breakdown.
+            </p>
           </div>
 
           <div style={s.fieldGroup}>

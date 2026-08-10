@@ -1,7 +1,7 @@
 // src/pages/student/StudentDashboard.jsx
 
 import { useState, useEffect, useCallback } from "react";
-import { BookOpen, LayoutDashboard, GraduationCap, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, ChevronDown, Clock, TrendingUp, Award, AlertCircle, CheckCircle2, BookMarked, Calendar, MessageSquare, ClipboardList, Loader2, RefreshCw, Search, Play, CheckSquare, Plus, Hash, Eye, EyeOff, Calculator, FlaskConical, Languages, Landmark, Dumbbell, Palette, Music2, Cpu, HeartHandshake, } from "lucide-react";
+import { BookOpen, LayoutDashboard, GraduationCap, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, ChevronDown, Clock, TrendingUp, Award, AlertCircle, CheckCircle2, BookMarked, Calendar, MessageSquare, ClipboardList, Loader2, RefreshCw, Search, Play, CheckSquare, Plus, Hash, Eye, EyeOff, Calculator, FlaskConical, Languages, Landmark, Dumbbell, Palette, Music2, Cpu, HeartHandshake, Sparkles, PartyPopper, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { getStudentProfile, getStudentCourses, getStudentAssignments, getStudentGrades, getStudentAnnouncements, getStudentNotifications, markNotificationRead, markAnnouncementsRead, } from "../../services/studentService";
@@ -616,7 +616,9 @@ function DashboardHome({ setActivePage, displayName, stats, courses, assignments
     <div className="fade-up">
       <div style={s.welcomeBar}>
         <div>
-          <h1 style={s.welcomeTitle}>Good day, {firstName}! 👋</h1>
+          <h1 style={s.welcomeTitle}>
+            Good day, {firstName}! <Sparkles size={22} color="#e0a052" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
+          </h1>
           <p style={s.welcomeDate}>{today}</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -693,7 +695,9 @@ function DashboardHome({ setActivePage, displayName, stats, courses, assignments
             {loading.assignments ? <Spinner /> : (
               <div style={s.card}>
                 {pendingAssignments.length === 0
-                  ? <div style={{ padding: "20px 16px", textAlign: "center", color: "#9ab5a0", fontSize: 13 }}>All caught up! 🎉</div>
+                  ? <div style={{ padding: "20px 16px", textAlign: "center", color: "#9ab5a0", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      <PartyPopper size={15} color="#7CA982" /> All caught up!
+                    </div>
                   : pendingAssignments.slice(0, 4).map((a, i, arr) => (
                     <div key={a.id} style={{ ...s.assignRow, borderBottom: i < arr.length - 1 ? "1px solid #e8f3ea" : "none" }}>
                       <div style={{ flex: 1 }}>

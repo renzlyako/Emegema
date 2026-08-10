@@ -3,7 +3,7 @@
 import TeacherCoursesPage from "./TeacherCoursesPage";
 import { getCourseStudents } from "../../services/courseService";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, LayoutDashboard, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, Clock, Users, TrendingUp, Award, CheckCircle2, MessageSquare, Plus, Calendar, Send, AlertCircle, Eye, Trash2, GraduationCap, BookMarked, ClipboardList, Loader2, RefreshCw, Search, ChevronDown, ChevronUp, UserX, ExternalLink, Link, CheckSquare, EyeOff, UserPlus, } from "lucide-react";
+import { BookOpen, LayoutDashboard, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, Clock, Users, TrendingUp, Award, CheckCircle2, MessageSquare, Plus, Calendar, Send, AlertCircle, Eye, Trash2, GraduationCap, BookMarked, ClipboardList, Loader2, RefreshCw, Search, ChevronDown, ChevronUp, UserX, ExternalLink, Link, CheckSquare, EyeOff, UserPlus, Sparkles, PartyPopper, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { getTeacherDashboardStats, getTeacherPendingSubmissions, getTeacherCourseAnalytics, getTeacherTodaySchedule, getTeacherAssignments, deleteAssignment, getTeacherStudents, getTeacherGradebook, getTeacherAnnouncements, postAnnouncement, deleteAnnouncement, gradeSubmission, saveGradebookConfig, saveManualScore, } from "../../services/teacherService";
@@ -563,7 +563,9 @@ function DashboardHome({ setActivePage, firstName, statsCards, statsLoading, sub
     <div className="fade-up">
       <div style={s.welcomeRow}>
         <div>
-          <h1 style={s.welcomeTitle}>Good day, {firstName}! 👋</h1>
+          <h1 style={s.welcomeTitle}>
+            Good day, {firstName}! <Sparkles size={22} color="#e0a052" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
+          </h1>
           <p style={s.welcomeSub}>{today}</p>
         </div>
         <button style={s.primaryBtn} className="primary-btn" onClick={() => setActivePage("courses")}>
@@ -596,7 +598,9 @@ function DashboardHome({ setActivePage, firstName, statsCards, statsLoading, sub
             {submissionsLoading ? (
               <div style={{ padding: "32px", display: "flex", justifyContent: "center" }}><Spinner size={20} /></div>
             ) : submissions.length === 0 ? (
-              <div style={{ padding: "32px 16px", textAlign: "center", color: "#9ab5a0", fontSize: 13 }}>🎉 No pending submissions right now</div>
+              <div style={{ padding: "32px 16px", textAlign: "center", color: "#9ab5a0", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <PartyPopper size={15} color="#7CA982" /> No pending submissions right now
+              </div>
             ) : submissions.slice(0, 5).map((sub, i) => (
               <div key={sub.id} style={{ ...s.subRow, borderTop: i > 0 ? "1px solid #e8f3ea" : "none" }}>
                 <div style={{ ...s.miniAvatar, background: stringToColor(sub.studentName) }}>{sub.studentInitials}</div>
@@ -618,7 +622,9 @@ function DashboardHome({ setActivePage, firstName, statsCards, statsLoading, sub
               {scheduleLoading ? (
                 <div style={{ padding: "24px", display: "flex", justifyContent: "center" }}><Spinner /></div>
               ) : todayClasses.length === 0 ? (
-                <div style={s.emptySmall}>No classes today 🎉</div>
+                <div style={{ ...s.emptySmall, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <PartyPopper size={14} color="#7CA982" /> No classes today
+                </div>
               ) : todayClasses.map((cls, i) => (
                 <div key={i} style={{ ...s.schedRow, borderTop: i > 0 ? "1px solid #e8f3ea" : "none" }}>
                   <div style={{ ...s.schedStripe, background: cls.cover_color }} />

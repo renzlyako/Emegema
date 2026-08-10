@@ -1,6 +1,6 @@
 // src/pages/teacher/CourseAssignmentsTab.jsx
 import { useState, useEffect, useCallback } from "react";
-import { Plus, X, Trash2, Send, Clock, Award, FileText, AlertCircle, Loader2, RefreshCw, CheckCircle2, Users, Star, MoreVertical, UserCheck, UserX, Eye, AlignLeft, ChevronDown, ChevronUp, Link, ExternalLink, Globe, } from "lucide-react";
+import { Plus, X, Trash2, Send, Clock, Award, FileText, AlertCircle, Loader2, RefreshCw, CheckCircle2, CheckSquare, Users, Star, MoreVertical, UserCheck, UserX, Eye, AlignLeft, ChevronDown, ChevronUp, Link, ExternalLink, Globe, } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { createAssignment, deleteAssignment, gradeSubmission, } from "../../services/teacherService";
 import { getCourseStudents, getCourseTerms } from "../../services/courseService";
@@ -1089,6 +1089,12 @@ function CreateAssignmentModal({ courseId, teacherId, onClose, onCreated }) {
                 {!t.disabled && <span style={{ color: t.color, fontSize: 18, fontWeight: 700 }}>→</span>}
               </button>
             ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#243E36", borderRadius: 12, border: "1.5px solid #243E36", marginTop: 4 }}>
+              <CheckSquare size={18} color="#F1F7ED" style={{ flexShrink: 0 }} />
+              <p style={{ fontSize: 11, color: "rgba(241,247,237,0.8)", lineHeight: 1.5 }}>
+                💡 After creating, go to <strong style={{ color: "#F1F7ED" }}>Gradebook → Setup Gradebook</strong> to categorize this as an Assignment or Activity for grade breakdown.
+              </p>
+            </div>
           </div>
         )}
 
