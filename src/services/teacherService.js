@@ -535,9 +535,11 @@ export async function getTeacherGradebook(teacherId) {
   courses.forEach(course => {
     const cid = course.id;
     const config = configMap[cid] || {
-      quiz_assessment_ids:     [],
-      exam_assessment_ids:     [],
-      activity_assignment_ids: [],
+      quiz_assessment_ids:       [],
+      exam_assessment_ids:       [],
+      activity_assessment_ids:   [],
+      assignment_assignment_ids: [],
+      activity_assignment_ids:   [],
       show_quiz:       true,
       show_exam:       true,
       show_activity:   true,
@@ -593,9 +595,11 @@ export async function saveGradebookConfig(courseId, teacherId, config) {
   const payload = {
     course_id:               courseId,
     teacher_id:              teacherId,
-    quiz_assessment_ids:     config.quiz_assessment_ids     ?? [],
-    exam_assessment_ids:     config.exam_assessment_ids     ?? [],
-    activity_assignment_ids: config.activity_assignment_ids ?? [],
+    quiz_assessment_ids:       config.quiz_assessment_ids       ?? [],
+    exam_assessment_ids:       config.exam_assessment_ids       ?? [],
+    activity_assessment_ids:   config.activity_assessment_ids   ?? [],
+    assignment_assignment_ids: config.assignment_assignment_ids ?? [],
+    activity_assignment_ids:   config.activity_assignment_ids   ?? [],
     show_quiz:               config.show_quiz        ?? true,
     show_exam:               config.show_exam        ?? true,
     show_activity:           config.show_activity    ?? true,

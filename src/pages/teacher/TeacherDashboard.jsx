@@ -1494,24 +1494,30 @@ const handleExport = () => {
     terms = [],
   } = current;
 
-  const quizIds     = config.quiz_assessment_ids     || [];
-  const examIds     = config.exam_assessment_ids     || [];
-  const activityIds = config.activity_assignment_ids || [];
+  const quizIds           = config.quiz_assessment_ids       || [];
+  const examIds           = config.exam_assessment_ids       || [];
+  const activityAssessIds = config.activity_assessment_ids   || [];
+  const assignmentIds3    = config.assignment_assignment_ids || [];
+  const activityIds       = config.activity_assignment_ids   || [];
 
 
   const buildSheetData = (termId, termLabel) => {
     const termAssessments = termId ? assessments.filter(a => a.term_id === termId) : assessments;
     const termAssignments = termId ? assignments.filter(a => a.term_id === termId) : assignments;
 
-    const quizItems     = termAssessments.filter(a => quizIds.includes(a.id));
-    const examItems     = termAssessments.filter(a => examIds.includes(a.id));
-    const activityItems = termAssignments.filter(a => activityIds.includes(a.id));
+    const quizItems           = termAssessments.filter(a => quizIds.includes(a.id));
+    const examItems           = termAssessments.filter(a => examIds.includes(a.id));
+    const activityAssessItems = termAssessments.filter(a => activityAssessIds.includes(a.id));
+    const assignmentItems3    = termAssignments.filter(a => assignmentIds3.includes(a.id));
+    const activityItems       = termAssignments.filter(a => activityIds.includes(a.id));
     const projectItems  = termAssignments.filter(a => a.assignment_type === "project");
 
     const headers = [
       "Student",
       ...quizItems.flatMap(q     => [`Quiz: ${q.title} (out of ${q.max_points ?? q.total_points ?? 100})`, "Date Taken"]),
       ...examItems.flatMap(e     => [`Exam: ${e.title} (out of ${e.max_points ?? e.total_points ?? 100})`, "Date Taken"]),
+      ...assignmentItems3.flatMap(a => [`Assignment: ${a.title} (out of ${a.max_points})`, "Date Submitted"]),
+      ...activityAssessItems.flatMap(a => [`Activity: ${a.title} (out of ${a.max_points ?? 100})`, "Date Taken"]),
       ...activityItems.flatMap(a => [`Activity: ${a.title} (out of ${a.max_points})`, "Date Submitted"]),
       ...projectItems.flatMap(p  => [`Project: ${p.title} (out of ${p.max_points})`, "Date Submitted"]),
       "Recitation",
@@ -1539,6 +1545,14 @@ const handleExport = () => {
         const sub = assessSubMap?.[e.id]?.[st.id];
         return [(!sub || sub.score == null) ? "—" : sub.score, formatDate(sub?.date)];
       });
+      const assignmentPairs3 = assignmentItems3.flatMap(a => {
+        const sub = assignSubMap?.[a.id]?.[st.id];
+        return [(!sub || sub.grade == null) ? "—" : sub.grade, formatDate(sub?.date)];
+      });
+      const activityAssessPairs = activityAssessItems.flatMap(a => {
+        const sub = assessSubMap?.[a.id]?.[st.id];
+        return [(!sub || sub.score == null) ? "—" : sub.score, formatDate(sub?.date)];
+      });
       const activityPairs = activityItems.flatMap(a => {
         const sub = assignSubMap?.[a.id]?.[st.id];
         return [(!sub || sub.grade == null) ? "—" : sub.grade, formatDate(sub?.date)];
@@ -1552,6 +1566,8 @@ const handleExport = () => {
         st.name,
         ...quizPairs,
         ...examPairs,
+        ...assignmentPairs3,
+        ...activityAssessPairs,
         ...activityPairs,
         ...projectPairs,
         manualMap?.[st.id]?.recitation ?? "—",
@@ -1770,9 +1786,11 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
   const { course, config: initialConfig, students, assignments, assessments, assignSubMap, assessSubMap, manualMap: initialManualMap, terms = [] } = data;
 
   const [config, setConfig] = useState({
-    quiz_assessment_ids:     initialConfig.quiz_assessment_ids     || [],
-    exam_assessment_ids:     initialConfig.exam_assessment_ids     || [],
-    activity_assignment_ids: initialConfig.activity_assignment_ids || [],
+    quiz_assessment_ids:       initialConfig.quiz_assessment_ids       || [],
+    exam_assessment_ids:       initialConfig.exam_assessment_ids       || [],
+    activity_assessment_ids:   initialConfig.activity_assessment_ids   || [],
+    assignment_assignment_ids: initialConfig.assignment_assignment_ids || [],
+    activity_assignment_ids:   initialConfig.activity_assignment_ids   || [],
     show_quiz:        initialConfig.show_quiz        ?? true,
     show_exam:        initialConfig.show_exam        ?? true,
     show_activity:    initialConfig.show_activity    ?? true,
@@ -1837,6 +1855,8 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
   // Derived lists
   const quizItems      = termAssessments.filter(a => config.quiz_assessment_ids.includes(a.id));
   const examItems      = termAssessments.filter(a => config.exam_assessment_ids.includes(a.id));
+  const activityAssessmentItems = termAssessments.filter(a => config.activity_assessment_ids.includes(a.id));
+  const assignmentItems = termAssignments.filter(a => config.assignment_assignment_ids.includes(a.id));
   const activityItems  = termAssignments.filter(a => config.activity_assignment_ids.includes(a.id));
   const projectItems   = termAssignments.filter(a => a.assignment_type === "project");
 
@@ -1848,25 +1868,42 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
     a.assignment_type !== "project" && !config.activity_assignment_ids.includes(a.id)
   );
 
+  const ASSESSMENT_CATEGORY_KEYS = {
+    quiz:     "quiz_assessment_ids",
+    exam:     "exam_assessment_ids",
+    activity: "activity_assessment_ids",
+  };
+
   const toggleAssessment = (type, id) => {
-    const key = type === "quiz" ? "quiz_assessment_ids" : "exam_assessment_ids";
-    const opposite = type === "quiz" ? "exam_assessment_ids" : "quiz_assessment_ids";
+    const key = ASSESSMENT_CATEGORY_KEYS[type];
+    const otherKeys = Object.values(ASSESSMENT_CATEGORY_KEYS).filter(k => k !== key);
     setConfig(prev => {
       const current = prev[key] || [];
       const isIn = current.includes(id);
-      return {
-        ...prev,
-        [key]: isIn ? current.filter(x => x !== id) : [...current, id],
-        [opposite]: isIn ? prev[opposite] : (prev[opposite] || []).filter(x => x !== id),
-      };
+      const next = { ...prev, [key]: isIn ? current.filter(x => x !== id) : [...current, id] };
+      if (!isIn) {
+        otherKeys.forEach(k => { next[k] = (prev[k] || []).filter(x => x !== id); });
+      }
+      return next;
     });
   };
 
-  const toggleActivity = (id) => {
+  const ASSIGNMENT_CATEGORY_KEYS = {
+    assignment: "assignment_assignment_ids",
+    activity:   "activity_assignment_ids",
+  };
+
+  const toggleAssignmentCategory = (type, id) => {
+    const key = ASSIGNMENT_CATEGORY_KEYS[type];
+    const otherKeys = Object.values(ASSIGNMENT_CATEGORY_KEYS).filter(k => k !== key);
     setConfig(prev => {
-      const current = prev.activity_assignment_ids || [];
+      const current = prev[key] || [];
       const isIn = current.includes(id);
-      return { ...prev, activity_assignment_ids: isIn ? current.filter(x => x !== id) : [...current, id] };
+      const next = { ...prev, [key]: isIn ? current.filter(x => x !== id) : [...current, id] };
+      if (!isIn) {
+        otherKeys.forEach(k => { next[k] = (prev[k] || []).filter(x => x !== id); });
+      }
+      return next;
     });
   };
 
@@ -2069,7 +2106,7 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
         <div style={{ background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "#243E36", marginBottom: 16 }}>Gradebook Setup — {course.title}</h3>
 
-          <div className="gradebook-setup-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div className="gradebook-setup-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
             {/* Quizzes */}
             <div>
               <p style={{ fontSize: 13, fontWeight: 700, color: "#3b5bdb", marginBottom: 8 }}>📝 Assessments → Quiz</p>
@@ -2077,19 +2114,22 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {termAssessments.length === 0 ? (
                   <p style={{ fontSize: 12, color: "#c8ddc9" }}>No assessments in this term yet</p>
-                ) : termAssessments.map(a => (
+                ) : termAssessments.map(a => {
+                  const usedAsExam     = config.exam_assessment_ids.includes(a.id);
+                  const usedAsActivity = config.activity_assessment_ids.includes(a.id);
+                  return (
                   <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "6px 10px", borderRadius: 8, background: config.quiz_assessment_ids.includes(a.id) ? "#e8eef9" : "#fafcfa", border: `1px solid ${config.quiz_assessment_ids.includes(a.id) ? "#3b5bdb40" : "#e8f3ea"}` }}>
                     <input type="checkbox"
                       checked={config.quiz_assessment_ids.includes(a.id)}
                       onChange={() => toggleAssessment("quiz", a.id)}
-                      disabled={config.exam_assessment_ids.includes(a.id)}
+                      disabled={usedAsExam || usedAsActivity}
                       style={{ accentColor: "#3b5bdb" }}
                     />
-                    <span style={{ fontSize: 13, color: "#243E36" }}>{a.title}</span>
-                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto" }}>{a.total_points ?? 100}pts</span>
-                    {config.exam_assessment_ids.includes(a.id) && <span style={{ fontSize: 10, color: "#e0a052" }}>used as Exam</span>}
+                    <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.total_points ?? 100}pts</span>
                   </label>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -2100,19 +2140,73 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {termAssessments.length === 0 ? (
                   <p style={{ fontSize: 12, color: "#c8ddc9" }}>No assessments in this term yet</p>
-                ) : termAssessments.map(a => (
+                ) : termAssessments.map(a => {
+                  const usedAsQuiz     = config.quiz_assessment_ids.includes(a.id);
+                  const usedAsActivity = config.activity_assessment_ids.includes(a.id);
+                  return (
                   <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "6px 10px", borderRadius: 8, background: config.exam_assessment_ids.includes(a.id) ? "#fff8f5" : "#fafcfa", border: `1px solid ${config.exam_assessment_ids.includes(a.id) ? "#c0532a40" : "#e8f3ea"}` }}>
                     <input type="checkbox"
                       checked={config.exam_assessment_ids.includes(a.id)}
                       onChange={() => toggleAssessment("exam", a.id)}
-                      disabled={config.quiz_assessment_ids.includes(a.id)}
+                      disabled={usedAsQuiz || usedAsActivity}
                       style={{ accentColor: "#c0532a" }}
                     />
-                    <span style={{ fontSize: 13, color: "#243E36" }}>{a.title}</span>
-                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto" }}>{a.total_points ?? 100}pts</span>
-                    {config.quiz_assessment_ids.includes(a.id) && <span style={{ fontSize: 10, color: "#3b5bdb" }}>used as Quiz</span>}
+                    <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.total_points ?? 100}pts</span>
                   </label>
-                ))}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* NEW: Assessments → Activity */}
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#4a7c59", marginBottom: 8 }}>🗂 Assessments → Activity</p>
+              <p style={{ fontSize: 11, color: "#9ab5a0", marginBottom: 10 }}>Select which assessments count as Activities (this term)</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {termAssessments.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "#c8ddc9" }}>No assessments in this term yet</p>
+                ) : termAssessments.map(a => {
+                  const usedAsQuiz = config.quiz_assessment_ids.includes(a.id);
+                  const usedAsExam = config.exam_assessment_ids.includes(a.id);
+                  return (
+                  <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "6px 10px", borderRadius: 8, background: config.activity_assessment_ids.includes(a.id) ? "#e8f3ea" : "#fafcfa", border: `1px solid ${config.activity_assessment_ids.includes(a.id) ? "#4a7c5940" : "#e8f3ea"}` }}>
+                    <input type="checkbox"
+                      checked={config.activity_assessment_ids.includes(a.id)}
+                      onChange={() => toggleAssessment("activity", a.id)}
+                      disabled={usedAsQuiz || usedAsExam}
+                      style={{ accentColor: "#4a7c59" }}
+                    />
+                    <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.total_points ?? 100}pts</span>
+                  </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Assignments → Assignments (regular, non-Activity) */}
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#3b5bdb", marginBottom: 8 }}>📄 Assignments → Assignments</p>
+              <p style={{ fontSize: 11, color: "#9ab5a0", marginBottom: 10 }}>Select which Essay/Link assignments count as regular Assignments</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {termAssignments.filter(a => a.assignment_type !== "project").length === 0 ? (
+                  <p style={{ fontSize: 12, color: "#c8ddc9" }}>No Essay/Link assignments in this term yet</p>
+                ) : termAssignments.filter(a => a.assignment_type !== "project").map(a => {
+                  const usedAsActivity = config.activity_assignment_ids.includes(a.id);
+                  return (
+                  <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "6px 10px", borderRadius: 8, background: config.assignment_assignment_ids.includes(a.id) ? "#e8eef9" : "#fafcfa", border: `1px solid ${config.assignment_assignment_ids.includes(a.id) ? "#3b5bdb40" : "#e8f3ea"}` }}>
+                    <input type="checkbox"
+                      checked={config.assignment_assignment_ids.includes(a.id)}
+                      onChange={() => toggleAssignmentCategory("assignment", a.id)}
+                      disabled={usedAsActivity}
+                      style={{ accentColor: "#3b5bdb" }}
+                    />
+                    <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.max_points}pts</span>
+                  </label>
+                  );
+                })}
               </div>
             </div>
 
@@ -2123,18 +2217,21 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {termAssignments.filter(a => a.assignment_type !== "project").length === 0 ? (
                   <p style={{ fontSize: 12, color: "#c8ddc9" }}>No Essay/Link assignments in this term yet</p>
-                ) : termAssignments.filter(a => a.assignment_type !== "project").map(a => (
+                ) : termAssignments.filter(a => a.assignment_type !== "project").map(a => {
+                  const usedAsAssignment = config.assignment_assignment_ids.includes(a.id);
+                  return (
                   <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "6px 10px", borderRadius: 8, background: config.activity_assignment_ids.includes(a.id) ? "#e8f3ea" : "#fafcfa", border: `1px solid ${config.activity_assignment_ids.includes(a.id) ? "#4a7c5940" : "#e8f3ea"}` }}>
                     <input type="checkbox"
                       checked={config.activity_assignment_ids.includes(a.id)}
-                      onChange={() => toggleActivity(a.id)}
+                      onChange={() => toggleAssignmentCategory("activity", a.id)}
+                      disabled={usedAsAssignment}
                       style={{ accentColor: "#4a7c59" }}
                     />
-                    <span style={{ fontSize: 13, color: "#243E36" }}>{a.title}</span>
-                    <span style={{ fontSize: 10, color: "#9ab5a0", marginLeft: 4 }}>({a.assignment_type})</span>
-                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto" }}>{a.max_points}pts</span>
+                    <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.max_points}pts</span>
                   </label>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -2179,7 +2276,7 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
                   <th key={q.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0f4ff" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#3b5bdb", textTransform: "uppercase" }}>QUIZ</div>
                     <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{q.title}</div>
-                    <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{q.total_points ?? 100}</div>
+                    <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{q.max_points ?? 100}</div>
                   </th>
                 ))}
 
@@ -2188,16 +2285,34 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
                   <th key={e.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#fff8f5" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#c0532a", textTransform: "uppercase" }}>EXAM</div>
                     <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{e.title}</div>
-                    <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{e.total_points ?? 100}</div>
+                    <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{e.max_points ?? 100}</div>
                   </th>
                 ))}
 
-                {/* Activity headers */}
+                {/* Assignment headers */}
+                {assignmentItems.map(a => (
+                  <th key={a.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0f4ff" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#3b5bdb", textTransform: "uppercase" }}>ASSIGNMENT</div>
+                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{a.title}</div>
+                    <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{a.max_points}</div>
+                  </th>
+                ))}
+
+                {/* Activity headers (from Assignments) */}
                 {activityItems.map(a => (
                   <th key={a.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0faf2" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#4a7c59", textTransform: "uppercase" }}>ACTIVITY</div>
                     <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{a.title}</div>
                     <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{a.max_points}</div>
+                  </th>
+                ))}
+
+                {/* Activity headers (from Assessments) */}
+                {activityAssessmentItems.map(a => (
+                  <th key={a.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0faf2" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#4a7c59", textTransform: "uppercase" }}>ACTIVITY</div>
+                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{a.title}</div>
+                    <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{a.max_points ?? 100}</div>
                   </th>
                 ))}
 
@@ -2249,10 +2364,24 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
                   </td>
                   ))}
 
-                  {/* Activity scores */}
+                  {/* Assignment scores */}
+                  {assignmentItems.map(a => (
+                  <td key={a.id} style={{ ...s.td, textAlign: "center", background: "#f8faff" }}>
+                  {scoreCell(assignSubMap[a.id]?.[st.id]?.grade, assignSubMap[a.id]?.[st.id]?.maxPoints ?? a.max_points, assignSubMap[a.id]?.[st.id]?.date)}
+                  </td>
+                  ))}
+
+                  {/* Activity scores (from Assignments) */}
                   {activityItems.map(a => (
                   <td key={a.id} style={{ ...s.td, textAlign: "center", background: "#f8fdf9" }}>
                   {scoreCell(assignSubMap[a.id]?.[st.id]?.grade, assignSubMap[a.id]?.[st.id]?.maxPoints ?? a.max_points, assignSubMap[a.id]?.[st.id]?.date)}
+                  </td>
+                  ))}
+
+                  {/* Activity scores (from Assessments) */}
+                  {activityAssessmentItems.map(a => (
+                  <td key={a.id} style={{ ...s.td, textAlign: "center", background: "#f8fdf9" }}>
+                  {scoreCell(assessSubMap[a.id]?.[st.id]?.score, assessSubMap[a.id]?.[st.id]?.maxScore ?? a.max_points ?? 100, assessSubMap[a.id]?.[st.id]?.date)}
                   </td>
                   ))}
 

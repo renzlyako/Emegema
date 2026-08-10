@@ -374,7 +374,8 @@ const fetchGrades = useCallback(async () => {
       .maybeSingle();
 
     const config = configRow || {
-      quiz_assessment_ids: [], exam_assessment_ids: [], activity_assignment_ids: [],
+      quiz_assessment_ids: [], exam_assessment_ids: [], activity_assessment_ids: [],
+      assignment_assignment_ids: [], activity_assignment_ids: [],
       show_quiz: true, show_exam: true, show_activity: true, show_project: true,
       show_recitation: false, show_attendance: false,
     };
@@ -387,8 +388,10 @@ const fetchGrades = useCallback(async () => {
 
     const quizIds = config.quiz_assessment_ids || [];
     const examIds = config.exam_assessment_ids || [];
+    const activityAssessIds = config.activity_assessment_ids || [];
     const quizAssessments = (assessmentsData || []).filter(a => quizIds.includes(a.id));
     const examAssessments = (assessmentsData || []).filter(a => examIds.includes(a.id));
+    const activityAssessments = (assessmentsData || []).filter(a => activityAssessIds.includes(a.id));
 
     const assessmentIds = (assessmentsData || []).map(a => a.id);
     let assessSubs = [];
@@ -410,6 +413,8 @@ const fetchGrades = useCallback(async () => {
       .eq("status", "active");
     if (assignErr) throw new Error(assignErr.message);
 
+    const assignmentIds2 = config.assignment_assignment_ids || [];
+    const regularAssignments  = (assignmentsData || []).filter(a => assignmentIds2.includes(a.id));
     const activityIds = config.activity_assignment_ids || [];
     const activityAssignments = (assignmentsData || []).filter(a => activityIds.includes(a.id));
     const projectAssignments  = (assignmentsData || []).filter(a => a.assignment_type === "project");
@@ -438,7 +443,17 @@ const fetchGrades = useCallback(async () => {
       config,
       quizzes: quizAssessments.map(a => ({ id: a.id, title: a.title, maxPoints: a.max_points, term_id: a.term_id, sub: assessSubMap[a.id] ?? null })),
       exams:   examAssessments.map(a => ({ id: a.id, title: a.title, maxPoints: a.max_points, term_id: a.term_id, sub: assessSubMap[a.id] ?? null })),
-      activities: activityAssignments.map(a => ({ id: a.id, title: a.title, maxPoints: a.max_points, type: a.assignment_type, term_id: a.term_id, sub: assignSubMap[a.id] ?? null })),
+      assignments: regularAssignments.map(a => ({ id: a.id, title: a.title, maxPoints: a.max_points, type: a.assignment_type, term_id: a.term_id, sub: assignSubMap[a.id] ?? null })),
+      activities: [
+        ...activityAssignments.map(a => ({
+          id: a.id, title: a.title, maxPoints: a.max_points, type: a.assignment_type, term_id: a.term_id,
+          sub: assignSubMap[a.id] ?? null,
+        })),
+        ...activityAssessments.map(a => ({
+          id: a.id, title: a.title, maxPoints: a.max_points, type: a.type, term_id: a.term_id,
+          sub: assessSubMap[a.id] ? { grade: assessSubMap[a.id].score, submitted_at: assessSubMap[a.id].submitted_at, status: assessSubMap[a.id].status } : null,
+        })),
+      ],
       projects:   projectAssignments.map(a => ({ id: a.id, title: a.title, maxPoints: a.max_points, term_id: a.term_id, sub: assignSubMap[a.id] ?? null })),
       recitation: manualRow?.recitation_score ?? null,
       attendance: manualRow?.attendance_score ?? null,
@@ -551,12 +566,14 @@ const fetchGrades = useCallback(async () => {
   const pendingAssign = assignments.filter(a => !a.submission).length;
   const pendingAssess = assessments.filter(a => !a.submission).length;
   const avgGrade = (() => {
-  const { quizzes = [], exams = [], activities = [], projects = [] } = grades || {};
+  const { quizzes = [], exams = [], assignments = [], activities = [], projects = [] } = grades || {};
   const percents = [
     ...quizzes.filter(q => q.sub?.score != null && (q.sub.max_score ?? q.maxPoints) > 0)
       .map(q => Math.min(100, (q.sub.score / (q.sub.max_score ?? q.maxPoints)) * 100)),
     ...exams.filter(e => e.sub?.score != null && (e.sub.max_score ?? e.maxPoints) > 0)
       .map(e => Math.min(100, (e.sub.score / (e.sub.max_score ?? e.maxPoints)) * 100)),
+    ...assignments.filter(a => a.sub?.grade != null && a.maxPoints > 0)
+      .map(a => Math.min(100, (a.sub.grade / a.maxPoints) * 100)),
     ...activities.filter(a => a.sub?.grade != null && a.maxPoints > 0)
       .map(a => Math.min(100, (a.sub.grade / a.maxPoints) * 100)),
     ...projects.filter(p => p.sub?.grade != null && p.maxPoints > 0)
@@ -1088,14 +1105,16 @@ function GradesTab({ grades, loading, error, onRetry, avgGrade, color, terms = [
   const {
     config = {},
     quizzes: allQuizzes = [], exams: allExams = [],
+    assignments: allAssignmentsCat = [],
     activities: allActivities = [], projects: allProjects = [],
     recitation = null, attendance = null,
   } = grades || {};
 
-  const quizzes    = activeTerm ? allQuizzes.filter(q => q.term_id === activeTerm)    : allQuizzes;
-  const exams      = activeTerm ? allExams.filter(e => e.term_id === activeTerm)      : allExams;
-  const activities = activeTerm ? allActivities.filter(a => a.term_id === activeTerm) : allActivities;
-  const projects   = activeTerm ? allProjects.filter(p => p.term_id === activeTerm)   : allProjects;
+  const quizzes     = activeTerm ? allQuizzes.filter(q => q.term_id === activeTerm)         : allQuizzes;
+  const exams       = activeTerm ? allExams.filter(e => e.term_id === activeTerm)           : allExams;
+  const assignmentsCat = activeTerm ? allAssignmentsCat.filter(a => a.term_id === activeTerm) : allAssignmentsCat;
+  const activities  = activeTerm ? allActivities.filter(a => a.term_id === activeTerm)      : allActivities;
+  const projects    = activeTerm ? allProjects.filter(p => p.term_id === activeTerm)        : allProjects;
 
   const catAvg = (items, scoreOf, maxOf) => {
     const graded = items.filter(it => scoreOf(it) != null);
@@ -1104,30 +1123,34 @@ function GradesTab({ grades, loading, error, onRetry, avgGrade, color, terms = [
     return Math.round(total / graded.length);
   };
 
-  const quizAvg     = catAvg(quizzes, q => q.sub?.score, q => q.sub?.max_score ?? q.maxPoints);
-  const examAvg     = catAvg(exams, e => e.sub?.score, e => e.sub?.max_score ?? e.maxPoints);
-  const activityAvg = catAvg(activities, a => a.sub?.grade, a => a.maxPoints);
-  const projectAvg  = catAvg(projects, p => p.sub?.grade, p => p.maxPoints);
+  const quizAvg       = catAvg(quizzes, q => q.sub?.score, q => q.sub?.max_score ?? q.maxPoints);
+  const examAvg       = catAvg(exams, e => e.sub?.score, e => e.sub?.max_score ?? e.maxPoints);
+  const assignmentAvg = catAvg(assignmentsCat, a => a.sub?.grade, a => a.maxPoints);
+  const activityAvg   = catAvg(activities, a => a.sub?.grade, a => a.maxPoints);
+  const projectAvg    = catAvg(projects, p => p.sub?.grade, p => p.maxPoints);
 
   const itemPercents = [
     ...quizzes.filter(q => q.sub?.score != null).map(q => q.sub.score / (q.sub.max_score ?? q.maxPoints) * 100),
     ...exams.filter(e => e.sub?.score != null).map(e => e.sub.score / (e.sub.max_score ?? e.maxPoints) * 100),
+    ...assignmentsCat.filter(a => a.sub?.grade != null).map(a => a.sub.grade / a.maxPoints * 100),
     ...activities.filter(a => a.sub?.grade != null).map(a => a.sub.grade / a.maxPoints * 100),
     ...projects.filter(p => p.sub?.grade != null).map(p => p.sub.grade / p.maxPoints * 100),
   ];
   const computedAvg = itemPercents.length > 0 ? Math.round(itemPercents.reduce((s, v) => s + v, 0) / itemPercents.length) : null;
-  const hasAnyData = quizzes.length + exams.length + activities.length + projects.length > 0;
+  const hasAnyData = quizzes.length + exams.length + assignmentsCat.length + activities.length + projects.length > 0;
 
   const CATS = [
-    { label: "Quizzes",    icon: <ClipboardList size={18} />, color: "#3b5bdb", items: quizzes,    avg: quizAvg },
-    { label: "Exams",      icon: <FileText size={18} />,      color: "#c0532a", items: exams,      avg: examAvg },
-    { label: "Activities", icon: <Edit3 size={18} />,         color: "#4a7c59", items: activities, avg: activityAvg },
-    { label: "Projects",   icon: <Globe size={18} />,         color: "#c0532a", items: projects,   avg: projectAvg },
+    { label: "Quizzes",     icon: <ClipboardList size={18} />, color: "#3b5bdb", items: quizzes,       avg: quizAvg },
+    { label: "Exams",       icon: <FileText size={18} />,      color: "#c0532a", items: exams,         avg: examAvg },
+    { label: "Assignments", icon: <FileText size={18} />,      color: "#3b5bdb", items: assignmentsCat, avg: assignmentAvg },
+    { label: "Activities",  icon: <Edit3 size={18} />,         color: "#4a7c59", items: activities,    avg: activityAvg },
+    { label: "Projects",    icon: <Globe size={18} />,         color: "#c0532a", items: projects,      avg: projectAvg },
   ];
 
   const allItems = [
     ...quizzes.map(q => ({ title: q.title, cat: "Quiz", color: "#3b5bdb", icon: <ClipboardList size={16} />, score: q.sub?.score, max: q.sub?.max_score ?? q.maxPoints, date: q.sub?.submitted_at })),
     ...exams.map(e => ({ title: e.title, cat: "Exam", color: "#c0532a", icon: <FileText size={16} />, score: e.sub?.score, max: e.sub?.max_score ?? e.maxPoints, date: e.sub?.submitted_at })),
+    ...assignmentsCat.map(a => ({ title: a.title, sub: a.type, cat: "Assignment", color: "#3b5bdb", icon: <FileText size={16} />, score: a.sub?.grade, max: a.maxPoints, date: a.sub?.submitted_at ?? a.date })),
     ...activities.map(a => ({ title: a.title, sub: a.type, cat: "Activity", color: "#4a7c59", icon: <Edit3 size={16} />, score: a.sub?.grade, max: a.maxPoints, date: a.sub?.submitted_at ?? a.date })),
     ...projects.map(p => ({ title: p.title, cat: "Project", color: "#c0532a", icon: <Globe size={16} />, score: p.sub?.grade, max: p.maxPoints, date: p.sub?.submitted_at ?? p.date })),
   ].sort((a, b) => {
