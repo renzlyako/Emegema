@@ -46,6 +46,33 @@ function stringToColor(str = "") {
   return colors[Math.abs(hash) % colors.length];
 }
 
+function validateStudentEmail(email) {
+  const trimmed = (email || "").trim().toLowerCase();
+
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailPattern.test(trimmed)) {
+    return "Please enter a valid email address.";
+  }
+
+  const [localPart, domain] = trimmed.split("@");
+  const domainName = domain.split(".")[0];
+
+  const blockedDomains = ["test.com", "example.com", "asdasd.com", "fake.com", "sample.com", "email.com", "domain.com", "mail.com"];
+  if (blockedDomains.includes(domain)) {
+    return "This looks like a placeholder email. Please use the student's real email address.";
+  }
+
+  if (localPart === domainName) {
+    return "This email looks like a test/placeholder. Please use the student's real email address.";
+  }
+
+  if (/^(.)\1{3,}$/.test(localPart)) {
+    return "Please enter a valid email address.";
+  }
+
+  return null; // valid
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return "";
   const diff  = Date.now() - new Date(dateStr).getTime();
@@ -734,6 +761,8 @@ function CreateStudentAccountModal({ courses, onClose, onCreated }) {
   const handleSubmit = async () => {
     if (!form.fullName.trim())              { setError("Full name is required.");  return; }
     if (!form.email.trim())                 { setError("Email is required.");      return; }
+    const emailError = validateStudentEmail(form.email);
+    if (emailError)                         { setError(emailError);                return; }
     if (!form.password || form.password.length < 6) { setError("Password must be at least 6 characters."); return; }
     if (!form.courseId)                     { setError("Please select a course."); return; }
 
