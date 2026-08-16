@@ -1,6 +1,6 @@
 // src/pages/teacher/CourseAssignmentsTab.jsx
 import { useState, useEffect, useCallback } from "react";
-import { Plus, X, Trash2, Send, Clock, Award, FileText, AlertCircle, Loader2, RefreshCw, CheckCircle2, CheckSquare, Users, Star, MoreVertical, UserCheck, UserX, Eye, AlignLeft, ChevronDown, ChevronUp, Link, ExternalLink, Globe, } from "lucide-react";
+import { Plus, X, Trash2, Send, Clock, Award, FileText, AlertCircle, Loader2, RefreshCw, CheckCircle2, CheckSquare, Users, Star, MoreVertical, UserCheck, UserX, Eye, AlignLeft, ChevronDown, ChevronUp, Link, ExternalLink, Globe, Lock, Unlock, } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { createAssignment, deleteAssignment, gradeSubmission, } from "../../services/teacherService";
 import { getCourseStudents, getCourseTerms } from "../../services/courseService";
@@ -124,7 +124,7 @@ export default function CourseAssignmentsTab({ course, teacherId, onGraded, onAs
     try {
       const { data: assigns, error: aErr } = await supabase
         .from("assignments")
-        .select("id, title, description, due_date, max_points, status, created_at, assignment_type, rubric_criteria, term_id")
+        .select("id, title, description, due_date, max_points, status, created_at, assignment_type, rubric_criteria, term_id, submission_locked")
         .eq("course_id", course.id)
         .order("created_at", { ascending: false });
 
@@ -210,6 +210,17 @@ export default function CourseAssignmentsTab({ course, teacherId, onGraded, onAs
   onAssessmentChanged?.(); 
 };
 
+  const handleToggleLock = async (id, locked) => {
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({ submission_locked: locked })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+      setAssignments(prev => prev.map(a => a.id === id ? { ...a, submission_locked: locked } : a));
+    } catch (e) { alert(e.message); }
+  };
+
   if (viewingId) {
     return (
       <SubmissionsView
@@ -282,6 +293,7 @@ export default function CourseAssignmentsTab({ course, teacherId, onGraded, onAs
               assignment={a}
               onDelete={() => handleDelete(a.id)}
               onViewSubmissions={() => setViewingId(a.id)}
+              onToggleLock={() => handleToggleLock(a.id, !a.submission_locked)}
             />
           ))}
         </div>
@@ -312,12 +324,13 @@ export default function CourseAssignmentsTab({ course, teacherId, onGraded, onAs
 // ─────────────────────────────────────────────
 // ASSIGNMENT CARD
 // ─────────────────────────────────────────────
-function AssignmentCard({ assignment: a, onDelete, onViewSubmissions }) {
+function AssignmentCard({ assignment: a, onDelete, onViewSubmissions, onToggleLock }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const info         = typeInfo(a.assignment_type);
   const submitRate   = a.totalStudents > 0 ? Math.round((a.submittedCount / a.totalStudents) * 100) : 0;
   const missingCount = Math.max(0, a.totalStudents - a.submittedCount);
   const isOverdue    = a.due_date && new Date(a.due_date) < new Date();
+  const isLocked      = !!a.submission_locked;
 
   return (
     <div style={s.assignCard}>
@@ -343,6 +356,11 @@ function AssignmentCard({ assignment: a, onDelete, onViewSubmissions }) {
               {missingCount > 0 && (
                 <span style={{ ...s.statusPill, background: "#fce8e8", color: "#8b2020" }}>
                   <UserX size={10} /> {missingCount} missing
+                </span>
+              )}
+              {isLocked && (
+                <span style={{ ...s.statusPill, background: "#fce8e8", color: "#8b2020" }}>
+                  <Lock size={10} /> Submission Locked
                 </span>
               )}
             </div>
@@ -395,6 +413,13 @@ function AssignmentCard({ assignment: a, onDelete, onViewSubmissions }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
         <button style={s.primaryBtn} onClick={onViewSubmissions} className="primary-btn">
           <Eye size={13} /> View Submissions
+        </button>
+        <button
+          style={{ ...s.secondaryBtn, color: isLocked ? "#1a5c30" : "#8b2020", borderColor: isLocked ? "#c8ddc9" : "#f5c6c6" }}
+          onClick={onToggleLock}
+          className="secondary-btn"
+        >
+          {isLocked ? <><Unlock size={13} /> Unlock Submission</> : <><Lock size={13} /> Lock Submission</>}
         </button>
       </div>
     </div>

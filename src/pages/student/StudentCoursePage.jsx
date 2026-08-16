@@ -298,7 +298,7 @@ export default function StudentCoursePage({ course, onBack }) {
     try {
       const { data: assignData, error: assignErr } = await supabase
         .from("assignments")
-        .select("id, title, description, due_date, max_points, status, assignment_type, rubric_criteria, term_id")
+        .select("id, title, description, due_date, max_points, status, assignment_type, rubric_criteria, term_id, submission_locked")
         .eq("course_id", course.id)
         .eq("status", "active")
         .order("due_date", { ascending: true });
@@ -728,8 +728,9 @@ function OverviewTab({ course, courseStats, announcements, assignments, assessme
                   const isLink    = a.assignment_type === "link";
                   const isProject = a.assignment_type === "project";
                   return (
-                    <div key={a.id} style={{ ...s.listRow, borderBottom: i < arr.length - 1 ? "1px solid #e8f3ea" : "none", cursor: (isEssay || isLink || isProject) ? "pointer" : "default" }}
+                    <div key={a.id} style={{ ...s.listRow, borderBottom: i < arr.length - 1 ? "1px solid #e8f3ea" : "none", cursor: (a.submission_locked) ? "not-allowed" : (isEssay || isLink || isProject) ? "pointer" : "default", opacity: a.submission_locked ? 0.6 : 1 }}
                       onClick={() => {
+                        if (a.submission_locked) return;
                         if (isEssay) onSubmitEssay(a);
                         else if (isLink) onSubmitLink(a);
                         else if (isProject) onSubmitProject(a);
@@ -921,7 +922,13 @@ function AssignmentsTab({ assignments = [], loading, errors = {}, onRetry = {}, 
                     {status}
                   </span>
 
-                  {isEssay && status !== "graded" && (
+                  {a.submission_locked && status === "pending" && (
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#8b2020", fontWeight: 600 }}>
+                      🔒 Submission Locked
+                    </span>
+                  )}
+
+                  {!(a.submission_locked && status === "pending") && isEssay && status !== "graded" && (
                     <button onClick={() => onSubmitEssay(a)} className="action-btn"
                       style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", background: "#4a7c59", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                       <Edit3 size={12} /> {status === "submitted" ? "Edit Essay" : "Write Essay"}
@@ -934,7 +941,7 @@ function AssignmentsTab({ assignments = [], loading, errors = {}, onRetry = {}, 
                     </button>
                   )}
 
-                  {isLink && status !== "graded" && (
+                  {!(a.submission_locked && status === "pending") && isLink && status !== "graded" && (
                     <button onClick={() => onSubmitLink(a)} className="action-btn"
                       style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                       <Link size={12} /> {status === "submitted" ? "Edit Link" : "Submit Link"}
@@ -947,7 +954,7 @@ function AssignmentsTab({ assignments = [], loading, errors = {}, onRetry = {}, 
                     </button>
                   )}
 
-                  {isProject && status !== "graded" && (
+                  {!(a.submission_locked && status === "pending") && isProject && status !== "graded" && (
                     <button onClick={() => onSubmitProject(a)} className="action-btn"
                       style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", background: "#c0532a", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                       <Globe size={12} /> {status === "submitted" ? "Edit Project" : "Submit Project"}
