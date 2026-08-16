@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, X, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, Send, Clock, Award, FileText, CheckSquare, AlignLeft, Edit3, BookOpen, AlertCircle, Loader2, RefreshCw, CheckCircle2, Lock, Unlock, MoreVertical, ArrowUp, ArrowDown, Copy, Users, Star, Shuffle, Database, Settings2, ToggleLeft, ToggleRight, Info, Download, } from "lucide-react";
-import { getCourseAssessments, createAssessment, updateAssessment, publishAssessment, closeAssessment, deleteAssessment, saveQuestions, getAssessmentWithQuestions, getAssessmentSubmissions, gradeSubmission, saveAssessmentAsTemplate, getTeacherTemplates, deleteAssessmentTemplate, applyTemplateToCourse, } from "../../services/assessmentService";
+import { getCourseAssessments, createAssessment, updateAssessment, publishAssessment, closeAssessment, deleteAssessment, saveQuestions, getAssessmentWithQuestions, getAssessmentSubmissions, gradeSubmission, saveAssessmentAsTemplate, getTeacherTemplates, deleteAssessmentTemplate, applyTemplateToCourse, toggleExamAccess, generateExamAccessCode, } from "../../services/assessmentService";
 import { getCourseTerms } from "../../services/courseService";
 import { exportSingleStudentDocx, exportAllStudentsDocx } from "../../services/exportService";
 import { createPortal } from "react-dom";
@@ -166,6 +166,7 @@ export default function CourseAssessmentsTab({ course, teacherId, onAssessmentCh
   };
 
   const [savingTemplateFor, setSavingTemplateFor] = useState(null);
+  const [accessControlFor, setAccessControlFor] = useState(null);
 
   const handleSaveTemplate = (assessment) => {
     setSavingTemplateFor(assessment);
@@ -270,6 +271,7 @@ export default function CourseAssessmentsTab({ course, teacherId, onAssessmentCh
               onDelete={() => handleDelete(a.id)}
               onViewSubmissions={() => setViewingId(a.id)}
               onSaveTemplate={() => handleSaveTemplate(a)}
+              onExamAccess={() => setAccessControlFor(a)}
             />
           ))}
         </div>
@@ -309,6 +311,17 @@ export default function CourseAssessmentsTab({ course, teacherId, onAssessmentCh
           assessment={savingTemplateFor}
           teacherId={teacherId}
           onClose={() => setSavingTemplateFor(null)}
+        />
+      )}
+
+      {accessControlFor && (
+        <ExamAccessModal
+          assessment={accessControlFor}
+          onClose={() => setAccessControlFor(null)}
+          onUpdated={(updated) => {
+            setAssessments(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a));
+            setAccessControlFor(updated);
+          }}
         />
       )}
     </div>
@@ -539,7 +552,7 @@ function UseTemplateModal({ teacherId, targetCourseId, targetTermId, onClose, on
 // ─────────────────────────────────────────────
 // ASSESSMENT CARD
 // ─────────────────────────────────────────────
-function AssessmentCard({ assessment: a, onEdit, onPublish, onClose, onDelete, onViewSubmissions, onSaveTemplate }) {
+function AssessmentCard({ assessment: a, onEdit, onPublish, onClose, onDelete, onViewSubmissions, onSaveTemplate, onExamAccess }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -666,6 +679,15 @@ function AssessmentCard({ assessment: a, onEdit, onPublish, onClose, onDelete, o
         {a.status === "draft" && (
           <button style={{ ...s.secondaryBtn, color: "#1a5c30", borderColor: "#c8ddc9" }} onClick={onPublish} className="secondary-btn">
             <Eye size={13} /> Publish
+          </button>
+        )}
+        {a.status === "published" && (
+          <button
+            style={{ ...s.secondaryBtn, color: a.access_unlocked ? "#1a5c30" : "#8b2020", borderColor: a.access_unlocked ? "#c8ddc9" : "#f5c6c6" }}
+            onClick={onExamAccess}
+            className="secondary-btn"
+          >
+            {a.access_unlocked ? <Unlock size={13} /> : <Lock size={13} />} Exam Access
           </button>
         )}
       </div>
@@ -2018,6 +2040,110 @@ function CreateAssessmentModal({ courseId, teacherId, onClose, onCreated }) {
   , document.body);
 }
 
+
+function ExamAccessModal({ assessment, onClose, onUpdated }) {
+  const [unlocked, setUnlocked] = useState(assessment.access_unlocked ?? false);
+  const [code,     setCode]     = useState(null);
+  const [saving,   setSaving]   = useState(false);
+  const [error,    setError]    = useState("");
+
+  const handleToggle = async () => {
+    setSaving(true); setError("");
+    try {
+      const next = !unlocked;
+      await toggleExamAccess(assessment.id, next);
+      setUnlocked(next);
+      onUpdated({ ...assessment, access_unlocked: next });
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const handleGenerateCode = async () => {
+    setSaving(true); setError("");
+    try {
+      const newCode = await generateExamAccessCode(assessment.id);
+      setCode(newCode);
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  return createPortal(
+    <div style={s.modalOverlay} onClick={onClose}>
+      <div style={{ ...s.modal, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+        <div style={s.modalHead}>
+          <h2 style={s.modalTitle}>Exam Access Control</h2>
+          <button style={s.modalClose} onClick={onClose}><X size={18} /></button>
+        </div>
+        <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {error && (
+            <div style={s.errorBox}>
+              <AlertCircle size={14} color="#c0392b" />
+              <span style={{ fontSize: 13, color: "#8b2020" }}>{error}</span>
+            </div>
+          )}
+
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            background: unlocked ? "#e8f3ea" : "#fce8e8", borderRadius: 10, padding: "14px 16px",
+          }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              {unlocked ? <Unlock size={18} color="#1a5c30" /> : <Lock size={18} color="#8b2020" />}
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#243E36" }}>
+                  {unlocked ? "Exam is Unlocked" : "Exam is Locked"}
+                </p>
+                <p style={{ fontSize: 11, color: "#5a7a6e", marginTop: 2 }}>
+                  {unlocked ? "Students can attempt entry with the code." : "Students cannot start this exam yet."}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleToggle}
+              disabled={saving}
+              style={{ ...s.primaryBtn, background: unlocked ? "#e05252" : "#243E36" }}
+            >
+              {unlocked ? "Lock" : "Unlock"}
+            </button>
+          </div>
+
+          <div style={s.fieldGroup}>
+            <label style={s.label}>Access Code</label>
+            {code ? (
+              <div style={{ background: "#243E36", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+                <p style={{
+                  fontSize: 28, fontWeight: 800, color: "#7CA982", letterSpacing: 4,
+                  fontFamily: "'Playfair Display', serif",
+                }}>
+                  {code}
+                </p>
+                <p style={{ fontSize: 11, color: "rgba(241,247,237,0.6)", marginTop: 6 }}>
+                  ⚠ Note this down now, you won't be able to see it again after the page is refreshed.
+                </p>
+              </div>
+            ) : (
+              <p style={{ fontSize: 12, color: "#9ab5a0" }}>
+                No code yet, or it's no longer visible because the page was refreshed. Generate a new one to see it.
+              </p>
+            )}
+            <button
+              onClick={handleGenerateCode}
+              disabled={saving}
+              style={{ ...s.secondaryBtn, justifyContent: "center" }}
+              className="secondary-btn"
+            >
+              {saving ? <Spinner size={14} /> : <RefreshCw size={14} />} Generate New Code
+            </button>
+          </div>
+
+          <p style={{ fontSize: 11, color: "#9ab5a0", lineHeight: 1.6 }}>
+            💡 Only unlock once students are in the computer lab. Give out the code at the exact time of the exam. 
+            Change the code before the next batch to prevent reuse.
+          </p>
+        </div>
+      </div>
+    </div>
+  , document.body);
+}
 
 function ConfirmModal({ title, message, confirmLabel = "Confirm", danger = true, onConfirm, onClose }) {
   useEffect(() => {

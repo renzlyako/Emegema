@@ -1,8 +1,9 @@
 // src/pages/student/StudentAssessmentTaker.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Clock, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, XCircle, Award, FileText, AlignLeft, Maximize, Shield, Send, Loader2, EyeOff, } from "lucide-react";
+import { Clock, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, XCircle, Award, FileText, AlignLeft, Maximize, Shield, Send, Loader2, EyeOff, Lock, } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useAuthStore } from "../../store/authStore";
-import { getAssessmentWithQuestions, getQuestionsForStudent, submitAssessment, sendAssessmentNotifications, getOrCreateAttempt, saveAttemptProgress, completeAttempt, } from "../../services/assessmentService";
+import { getAssessmentPreview, getQuestionsForStudent, submitAssessment, sendAssessmentNotifications, getOrCreateAttempt, saveAttemptProgress, completeAttempt, verifyExamAccessCode, } from "../../services/assessmentService";
 
 function getInitials(name = "") {
   return name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
@@ -45,9 +46,14 @@ function PreScreen({ assessment, onStart, onBack }) {
   const [error,          setError]          = useState(null);
   const [liveAssessment, setLiveAssessment] = useState(assessment);
 
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [codeInput,     setCodeInput]     = useState("");
+  const [verifying,     setVerifying]     = useState(false);
+  const [codeError,     setCodeError]     = useState("");
+
   useEffect(() => {
     Promise.all([
-      getAssessmentWithQuestions(assessment.id),
+      getAssessmentPreview(assessment.id),
       getQuestionsForStudent(assessment.id),
     ])
       .then(([fresh, qs]) => {
@@ -57,6 +63,29 @@ function PreScreen({ assessment, onStart, onBack }) {
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [assessment.id]);
+
+  const handleStartClick = () => {
+    if (!liveAssessment.access_unlocked) return;
+    setCodeError("");
+    setShowCodeModal(true);
+  };
+
+  const handleVerifyCode = async () => {
+    setVerifying(true); setCodeError("");
+    try {
+      const valid = await verifyExamAccessCode(liveAssessment.id, codeInput);
+      if (valid) {
+        setShowCodeModal(false);
+        onStart(liveAssessment);
+      } else {
+        setCodeError("Maling code. Subukan ulit o tanungin ang guro mo.");
+      }
+    } catch (e) {
+      setCodeError(e.message);
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const timerMode = getTimerMode(liveAssessment);
   const totalTime = timerMode === "per_question"
@@ -145,21 +174,77 @@ function PreScreen({ assessment, onStart, onBack }) {
           </div>
         )}
 
+        {!loading && !liveAssessment.access_unlocked && (
+          <div style={{ background: "#fce8e8", border: "1px solid #f5c6c6", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+            <Lock size={16} color="#8b2020" />
+            <p style={{ fontSize: 13, color: "#8b2020" }}>This exam is not yet available. Please wait for your teacher.</p>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
           <button style={ps.backBtn} onClick={onBack} className="back-btn">← Go Back</button>
           <button
-            style={{ ...ps.startBtn, opacity: loading ? 0.6 : 1 }}
-            onClick={() => onStart(liveAssessment)}
-            disabled={loading || !!error}
+            style={{ ...ps.startBtn, opacity: (loading || !liveAssessment.access_unlocked) ? 0.5 : 1 }}
+            onClick={handleStartClick}
+            disabled={loading || !!error || !liveAssessment.access_unlocked}
             className="start-btn"
           >
             {loading
               ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Loading…</>
-              : <><Maximize size={16} /> Start Assessment</>
+              : !liveAssessment.access_unlocked
+                ? <><Lock size={16} /> Not Yet Available</>
+                : <><Maximize size={16} /> Start Assessment</>
             }
           </button>
         </div>
       </div>
+
+      {showCodeModal && createPortal(
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 999999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={() => !verifying && setShowCodeModal(false)}
+        >
+          <div
+            style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 360, width: "100%", fontFamily: "'DM Sans', sans-serif" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 800, color: "#243E36", marginBottom: 6 }}>
+              Enter Access Code
+            </h3>
+            <p style={{ fontSize: 13, color: "#5a7a6e", marginBottom: 16 }}>
+              Ask your teacher for the code before starting the exam.
+            </p>
+            {codeError && (
+              <div style={{ background: "#fce8e8", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#8b2020", marginBottom: 12 }}>
+                {codeError}
+              </div>
+            )}
+            <input
+              type="text" inputMode="numeric" maxLength={6} placeholder="000000"
+              value={codeInput}
+              onChange={e => setCodeInput(e.target.value.replace(/\D/g, ""))}
+              style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: "1.5px solid #c8ddc9", fontSize: 20, textAlign: "center", letterSpacing: 6, fontWeight: 700, color: "#243E36", outline: "none", marginBottom: 16, boxSizing: "border-box" }}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setShowCodeModal(false)}
+                disabled={verifying}
+                style={{ flex: 1, padding: "11px 0", border: "1.5px solid #e8f3ea", borderRadius: 9, background: "#fff", color: "#5a7a6e", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleVerifyCode}
+                disabled={verifying || codeInput.length < 4}
+                style={{ flex: 1, padding: "11px 0", border: "none", borderRadius: 9, background: "#243E36", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              >
+                {verifying ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : null} Enter
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 }
@@ -714,7 +799,7 @@ const ps = {
   headerIcon: { width: 56, height: 56, borderRadius: 14, background: "#e8f3ea", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   typeBadge:  { fontSize: 10, fontWeight: 700, color: "#fff", padding: "3px 10px", borderRadius: 99, textTransform: "uppercase", letterSpacing: "0.08em", display: "inline-block", marginBottom: 8 },
   title:      { fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 800, color: "#243E36", marginBottom: 6 },
-  desc:       { fontSize: 14, color: "#5a7a6e", lineHeight: 1.6 },
+  desc:       { fontSize: 14, color: "#5a7a6e", lineHeight: 1.6, wordBreak: "break-word", overflowWrap: "break-word" },
   statsRow:   { display: "flex", background: "#F1F7ED", borderRadius: 12, padding: "16px 0", justifyContent: "space-around" },
   stat:       { textAlign: "center" },
   statNum:    { fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 800, color: "#243E36" },

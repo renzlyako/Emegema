@@ -104,6 +104,53 @@ export async function unpublishAssessment(assessmentId) {
 }
 
 // ─────────────────────────────────────────────
+// EXAM ACCESS CONTROL
+// ─────────────────────────────────────────────
+export async function toggleExamAccess(assessmentId, unlock) {
+  const { error } = await supabase
+    .from("assessments")
+    .update({ access_unlocked: unlock })
+    .eq("id", assessmentId);
+  if (error) throw new Error(error.message);
+  return unlock;
+}
+
+function generateSixDigitCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+export async function generateExamAccessCode(assessmentId) {
+  const code = generateSixDigitCode();
+  const { error } = await supabase
+    .from("assessments")
+    .update({ access_code: code, code_updated_at: new Date().toISOString() })
+    .eq("id", assessmentId);
+  if (error) throw new Error(error.message);
+  return code; 
+}
+
+export async function verifyExamAccessCode(assessmentId, code) {
+  const { data, error } = await supabase.rpc("verify_exam_access", {
+    assessment_id_input: assessmentId,
+    code_input: code,
+  });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+export async function getAssessmentPreview(assessmentId) {
+  const { data, error } = await supabase
+    .from("assessments")
+    .select(
+      "id, course_id, term_id, title, description, type, status, due_date, time_limit, time_per_question, max_points, show_answers_after_submit, access_unlocked"
+    )
+    .eq("id", assessmentId)
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// ─────────────────────────────────────────────
 // TEACHER: DELETE ASSESSMENT
 // ─────────────────────────────────────────────
 export async function deleteAssessment(assessmentId) {
