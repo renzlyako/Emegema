@@ -166,6 +166,7 @@ export default function TeacherDashboard() {
   const [activePage,  setActivePage]  = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen,           setNotifOpen]           = useState(false);
+  const notifRef = useRef(null);
   const [avatarOpen,          setAvatarOpen]          = useState(false);
   const [showChangePassword,  setShowChangePassword]  = useState(false);
 
@@ -304,6 +305,17 @@ export default function TeacherDashboard() {
   };
 
   useEffect(() => {
+    if (!notifOpen) return;
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notifOpen]);
+
+  useEffect(() => {
     if (analytics.length > 0) setCourses(analytics);
   }, [analytics]);
 
@@ -386,7 +398,7 @@ export default function TeacherDashboard() {
           </button>
           <span style={s.topTitle}>{NAV.find(n => n.id === activePage)?.label}</span>
           <div style={s.topRight}>
-            <div style={{ position: "relative" }}>
+            <div style={{ position: "relative" }} ref={notifRef}>
               <button style={s.bellBtn} onClick={handleBellClick} className="icon-btn">
                 <Bell size={17} color="#243E36" />
                 {unreadNotifCount > 0 && <span style={s.bellDot}>{unreadNotifCount}</span>}

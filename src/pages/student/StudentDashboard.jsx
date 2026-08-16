@@ -1,6 +1,6 @@
 // src/pages/student/StudentDashboard.jsx
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, LayoutDashboard, GraduationCap, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, ChevronDown, Clock, TrendingUp, Award, AlertCircle, CheckCircle2, BookMarked, Calendar, MessageSquare, ClipboardList, Loader2, RefreshCw, Search, Play, CheckSquare, Plus, Hash, Eye, EyeOff, Calculator, FlaskConical, Languages, Landmark, Dumbbell, Palette, Music2, Cpu, HeartHandshake, Sparkles, PartyPopper, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -255,6 +255,7 @@ export default function StudentDashboard() {
   const [activePage,       setActivePage]       = useState("dashboard");
   const [sidebarOpen,      setSidebarOpen]       = useState(false);
   const [notifOpen,        setNotifOpen]         = useState(false);
+  const notifRef = useRef(null);
   const [takingAssessment, setTakingAssessment]  = useState(null);
   const [viewingCourse,    setViewingCourse]      = useState(null);
   const [showJoinModal,    setShowJoinModal]      = useState(false);
@@ -380,6 +381,17 @@ export default function StudentDashboard() {
   } catch (_) {}
 };
 
+useEffect(() => {
+  if (!notifOpen) return;
+  const handleClickOutside = (e) => {
+    if (notifRef.current && !notifRef.current.contains(e.target)) {
+      setNotifOpen(false);
+    }
+  };
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, [notifOpen]);
+
 const markAnnouncementsAsRead = useCallback(async () => {
   if (!user?.id) return;
   const unreadIds = announcements.filter(a => !a.is_read).map(a => a.id);
@@ -472,13 +484,13 @@ const markAnnouncementsAsRead = useCallback(async () => {
           </button>
           <div style={s.topbarTitle}>{NAV_ITEMS.find(n => n.id === activePage)?.label ?? "Dashboard"}</div>
           <div style={s.topbarRight}>
-            <div style={{ position: "relative" }}>
+            <div style={{ position: "relative" }} ref={notifRef}>
               <button style={s.notifBtn} onClick={() => setNotifOpen(v => !v)} className="notif-btn">
                 <Bell size={18} color="#243E36" />
                 {unreadNotifCount > 0 && <span style={s.notifDot}>{unreadNotifCount}</span>}
               </button>
               {notifOpen && (
-                <div style={s.notifDropdown}>
+                <div style={s.notifDropdown} className="notif-dropdown">
                   <div style={s.notifHeader}>
   <span style={s.notifHeaderTitle}>Notifications</span>
   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1470,6 +1482,16 @@ const css = `
     }
     .table-scroll table {
       min-width: 480px;
+    }
+  }
+  @media (max-width: 480px) {
+    .notif-dropdown {
+      position: fixed !important;
+      top: 64px !important;
+      left: 12px !important;
+      right: 12px !important;
+      width: auto !important;
+      max-width: none !important;
     }
   }
 `;
