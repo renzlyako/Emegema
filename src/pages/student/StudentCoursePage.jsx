@@ -1650,7 +1650,7 @@ function LinkSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
           {isGraded && existing.feedback && (
             <div style={{ background: "#e8f3ea", borderRadius: 10, padding: "14px 16px" }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#1a5c30", marginBottom: 6 }}>Teacher's Feedback</p>
-              <p style={{ fontSize: 13, color: "#243E36", lineHeight: 1.6 }}>{existing.feedback}</p>
+              <p style={{ fontSize: 13, color: "#243E36", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{existing.feedback}</p>
             </div>
           )}
 
@@ -1883,7 +1883,7 @@ function ProjectSubmitModal({ assignment, studentId, onClose, onSubmitted }) {
           {isGraded && extraFeedback && (
             <div style={{ background: "#e8f3ea", borderRadius: 10, padding: "14px 16px" }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#1a5c30", marginBottom: 6 }}>Teacher's Feedback</p>
-              <p style={{ fontSize: 13, color: "#243E36", lineHeight: 1.6 }}>{extraFeedback}</p>
+              <p style={{ fontSize: 13, color: "#243E36", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{extraFeedback}</p>
             </div>
           )}
 
@@ -2043,7 +2043,7 @@ onSubmitted();
           {isGraded && existing.feedback && (
             <div style={{ background: "#e8f3ea", borderRadius: 10, padding: "14px 16px" }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#1a5c30", marginBottom: 6 }}>Teacher's Feedback</p>
-              <p style={{ fontSize: 13, color: "#243E36", lineHeight: 1.6 }}>{existing.feedback}</p>
+              <p style={{ fontSize: 13, color: "#243E36", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{existing.feedback}</p>
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
