@@ -51,14 +51,15 @@ export default function LoginPage() {
 
  
   useEffect(() => {
-    if (isRecovering) return; 
+    if (isRecovering) return;
     if (user && profile) {
-      const redirect = {
-        admin:   "/admin/dashboard",
-        teacher: "/teacher/dashboard",
-        student: "/student/dashboard",
-      };
-      navigate(redirect[profile.role] ?? "/student/dashboard", { replace: true });
+      const redirect = ROLE_REDIRECT[profile.role] ?? "/student/dashboard";
+      if (!profile.terms_accepted_at) {
+        setPendingRedirect(redirect);
+        setShowTermsModal(true);
+        return;
+      }
+      navigate(redirect, { replace: true });
     }
   }, [user, profile, navigate]);
 
@@ -71,6 +72,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading]       = useState(false);
   const [showForgot,  setShowForgot]    = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [showTermsModal,  setShowTermsModal]  = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -89,7 +92,28 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
       }
-      navigate(ROLE_REDIRECT[role] ?? "/student/dashboard", { replace: true });
+
+      const redirectPath = ROLE_REDIRECT[role] ?? "/student/dashboard";
+
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("terms_accepted_at")
+          .eq("id", authUser.id)
+          .single();
+
+        if (!profileData?.terms_accepted_at) {
+          setPendingRedirect(redirectPath);
+          setShowTermsModal(true);
+          setIsLoading(false);
+          return;
+        }
+      } catch (_) {
+
+      }
+
+      navigate(redirectPath, { replace: true });
     };
 
   return (
@@ -216,6 +240,101 @@ export default function LoginPage() {
             {showForgot && (
         <ForgotPasswordModal onClose={() => setShowForgot(false)} />
       )}
+
+      {showTermsModal && (
+        <TermsConsentModal
+          onAccept={() => { setShowTermsModal(false); navigate(pendingRedirect, { replace: true }); }}
+          onDecline={async () => {
+            await supabase.auth.signOut();
+            setShowTermsModal(false);
+            setPendingRedirect(null);
+            setServerError("You must accept the Privacy Policy and Terms of Service to continue.");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// MODAL: TERMS & PRIVACY CONSENT
+// ─────────────────────────────────────────────
+function TermsConsentModal({ onAccept, onDecline }) {
+  const [checked, setChecked] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState("");
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const handleAccept = async () => {
+    if (!checked) return;
+    setSaving(true); setError("");
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ terms_accepted_at: new Date().toISOString() })
+        .eq("id", authUser.id);
+      if (updateError) { setError(updateError.message); setSaving(false); return; }
+      onAccept();
+    } catch (e) {
+      setError(e.message || "Something went wrong. Please try again.");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={fm.overlay}>
+      <div style={{ ...fm.modal, maxWidth: 460 }}>
+        <div style={{ padding: "24px 24px 0" }}>
+          <h2 style={fm.title}>Before you continue</h2>
+          <p style={{ fontSize: 13, color: "#5a7a6e", marginTop: 6, lineHeight: 1.6 }}>
+            Please review and accept our Privacy Policy and Terms of Service to keep using EMEGEMA.
+          </p>
+        </div>
+
+        <div style={{ padding: "20px 24px 24px" }}>
+          {error && (
+            <div style={{ background: "#fce8e8", border: "1px solid #e08080", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#8b2020", marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
+
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", background: "#F1F7ED", borderRadius: 10, border: "1px solid #e8f3ea" }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={e => setChecked(e.target.checked)}
+              style={{ marginTop: 2, accentColor: "#7CA982", width: 16, height: 16, flexShrink: 0 }}
+            />
+            <span style={{ fontSize: 13, color: "#243E36", lineHeight: 1.6 }}>
+              I have read and agree to the{" "}
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: "#7CA982", fontWeight: 600 }}>Privacy Policy</a>
+              {" "}and{" "}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#7CA982", fontWeight: 600 }}>Terms of Service</a>.
+            </span>
+          </label>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button
+              onClick={onDecline}
+              style={{ flex: 1, padding: "11px 0", border: "1.5px solid #e8f3ea", borderRadius: 9, background: "#fff", color: "#5a7a6e", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Decline
+            </button>
+            <button
+              onClick={handleAccept}
+              disabled={!checked || saving}
+              style={{ flex: 2, padding: "11px 0", border: "none", borderRadius: 9, background: "#243E36", color: "#F1F7ED", fontSize: 14, fontWeight: 600, cursor: (!checked || saving) ? "not-allowed" : "pointer", opacity: (!checked || saving) ? 0.6 : 1, fontFamily: "'DM Sans', sans-serif" }}
+            >
+              {saving ? "Saving…" : "I Agree & Continue"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

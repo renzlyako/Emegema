@@ -18,6 +18,7 @@ import {
   getTeacherStudentBreakdown,
   getAuditLog,
 } from "../../services/adminService";
+import { getAllSupportRequests, respondToSupportRequest } from "../../services/supportService";
 import {
   LayoutDashboard, Users, BookOpen, BarChart2, Settings,
   Bell, LogOut, Menu, X, ChevronRight, TrendingUp,
@@ -26,7 +27,7 @@ import {
   Download, GraduationCap, UserCheck, UserX,
   Activity, Database, Globe, Lock, Mail, Save,
   ArrowUp, ArrowDown, MessageSquare, FileText,
-  Loader2, RefreshCw, AlertCircle,
+  Loader2, RefreshCw, AlertCircle, Send,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -34,6 +35,7 @@ const NAV = [
   { id: "overview",  label: "Overview",          icon: <LayoutDashboard size={18} /> },
   { id: "users",     label: "User Management",   icon: <Users size={18} />           },
   { id: "courses",   label: "Course Management", icon: <BookOpen size={18} />        },
+  { id: "support",   label: "Support Requests",  icon: <Mail size={18} />            },
   { id: "reports",   label: "Reports",           icon: <BarChart2 size={18} />       },
   { id: "audit",     label: "Audit Trail",       icon: <Shield size={18} />          },
   { id: "settings",  label: "Settings",          icon: <Settings size={18} />        },
@@ -123,10 +125,11 @@ export default function AdminDashboard() {
   const [reportStats,   setReportStats]   = useState(null);
   const [activity,      setActivity]      = useState([]);
   const [auditLog,      setAuditLog]      = useState([]);
+  const [supportRequests, setSupportRequests] = useState([]);
 
   const [loading, setLoading] = useState({
     profile: true, overview: true, users: true,
-    courses: true, reports: true, activity: true, audit: true,
+    courses: true, reports: true, activity: true, audit: true, support: true,
   });
   const [errors, setErrors] = useState({});
 
@@ -183,6 +186,13 @@ export default function AdminDashboard() {
     finally { setLoad("audit", false); }
   }, []);
 
+  const fetchSupportRequests = useCallback(async () => {
+    setLoad("support", true); setErr("support", null);
+    try { setSupportRequests(await getAllSupportRequests()); }
+    catch (e) { setErr("support", e.message); }
+    finally { setLoad("support", false); }
+  }, []);
+
   useEffect(() => {
     fetchProfile();
     fetchOverview();
@@ -191,13 +201,15 @@ export default function AdminDashboard() {
     fetchReports();
     fetchActivity();
     fetchAuditLog();
-  }, [fetchProfile, fetchOverview, fetchUsers, fetchCourses, fetchReports, fetchActivity, fetchAuditLog]);
+    fetchSupportRequests();
+  }, [fetchProfile, fetchOverview, fetchUsers, fetchCourses, fetchReports, fetchActivity, fetchAuditLog, fetchSupportRequests]);
 
   const handleLogout = async () => { await signOut(); navigate("/login"); };
 
   const displayName  = adminProfile?.full_name ?? user?.email ?? "Admin";
   const initials     = getInitials(displayName);
   const pendingUsers = users.filter(u => u.status === "pending");
+  const pendingSupportCount = supportRequests.filter(r => r.status === "pending").length;
 
   const STATS_CARDS = overviewStats ? [
     { label: "Total Users",       value: overviewStats.totalUsers,       icon: <Users size={20} />,    color: "#243E36" },
@@ -239,6 +251,9 @@ export default function AdminDashboard() {
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.id === "users" && pendingUsers.length > 0 && (
                 <span style={s.navBadge}>{pendingUsers.length}</span>
+              )}
+              {item.id === "support" && pendingSupportCount > 0 && (
+                <span style={s.navBadge}>{pendingSupportCount}</span>
               )}
             </button>
           ))}
@@ -331,6 +346,14 @@ export default function AdminDashboard() {
               activityLoading={loading.activity}
               error={errors.reports}
               onRefresh={fetchReports}
+            />
+          )}
+          {activePage === "support" && (
+            <SupportRequestsPage
+              requests={supportRequests}
+              loading={loading.support}
+              error={errors.support}
+              onRefresh={fetchSupportRequests}
             />
           )}
           {activePage === "audit" && (
@@ -1263,6 +1286,218 @@ function SectionHead({ title, badge, action, onAction }) {
       )}
     </div>
   );
+}
+
+// ─────────────────────────────────────────────
+// PAGE: SUPPORT REQUESTS
+// ─────────────────────────────────────────────
+function REQUEST_TYPE_META(type) {
+  const map = {
+    account_deletion: { label: "Account Deletion", color: "#e05252" },
+    bug_report:        { label: "Bug Report",        color: "#e0a052" },
+    general:           { label: "General",           color: "#7CA982" },
+    other:             { label: "Other",              color: "#9ab5a0" },
+  };
+  return map[type] ?? { label: type, color: "#9ab5a0" };
+}
+
+function REQUEST_STATUS_META(status) {
+  const map = {
+    pending:     { label: "Pending",     background: "#fff8e1", color: "#7a5c00" },
+    in_progress: { label: "In Progress", background: "#e8eef9", color: "#1a3a70" },
+    resolved:    { label: "Resolved",    background: "#e8f3ea", color: "#1a5c30" },
+    rejected:    { label: "Rejected",    background: "#fce8e8", color: "#8b2020" },
+  };
+  return map[status] ?? { label: status, background: "#f0f0f0", color: "#666" };
+}
+
+function SupportRequestsPage({ requests, loading, error, onRefresh }) {
+  const [search,       setSearch]       = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter,   setTypeFilter]   = useState("all");
+  const [viewing,      setViewing]      = useState(null);
+
+  const filtered = requests.filter(r => {
+    const matchSearch = r.userName.toLowerCase().includes(search.toLowerCase()) ||
+                         r.subject.toLowerCase().includes(search.toLowerCase()) ||
+                         r.userEmail.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || r.status === statusFilter;
+    const matchType    = typeFilter === "all" || r.request_type === typeFilter;
+    return matchSearch && matchStatus && matchType;
+  });
+
+  const pendingCount = requests.filter(r => r.status === "pending").length;
+
+  return (
+    <div className="fade-up">
+      <div style={s.pageHead}>
+        <div>
+          <h1 style={s.pageTitle}>Support Requests</h1>
+          <p style={s.pageSub}>{loading ? "Loading…" : `${requests.length} total · ${pendingCount} pending`}</p>
+        </div>
+        <button style={s.primaryBtn} className="primary-btn" onClick={onRefresh}>
+          <RefreshCw size={14} /> Refresh
+        </button>
+      </div>
+
+      {error && <ErrorBanner message={error} onRetry={onRefresh} />}
+
+      <div style={s.filterBar}>
+        <div style={s.searchWrap}>
+          <Search size={15} color="#9ab5a0" style={s.searchIcon} />
+          <input placeholder="Search by name, email, or subject..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={s.searchInput} className="lms-input" />
+        </div>
+        <div style={s.filterGroup}>
+          {["all", "pending", "in_progress", "resolved", "rejected"].map(st => (
+            <button key={st} onClick={() => setStatusFilter(st)}
+              style={{ ...s.filterTab, ...(statusFilter === st ? s.filterActive : {}) }}
+              className="filter-tab">
+              {st === "all" ? "All Status" : REQUEST_STATUS_META(st).label}
+            </button>
+          ))}
+        </div>
+        <div style={s.filterGroup}>
+          {["all", "general", "account_deletion", "bug_report", "other"].map(t => (
+            <button key={t} onClick={() => setTypeFilter(t)}
+              style={{ ...s.filterTab, ...(typeFilter === t ? s.filterActive : {}) }}
+              className="filter-tab">
+              {t === "all" ? "All Types" : REQUEST_TYPE_META(t).label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><Spinner size={24} /></div>
+      ) : filtered.length === 0 ? (
+        <div style={s.card}><EmptyState icon={<Mail size={28} color="#c8ddc9" />} text="No support requests found" /></div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.map(r => {
+            const typeMeta   = REQUEST_TYPE_META(r.request_type);
+            const statusMeta = REQUEST_STATUS_META(r.status);
+            return (
+              <div key={r.id} style={{ background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start", borderLeft: `4px solid ${typeMeta.color}`, cursor: "pointer" }}
+                onClick={() => setViewing(r)} className="stat-card">
+                <div style={{ ...s.miniAvatar, background: stringToColor(r.userName) }}>{getInitials(r.userName)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#243E36" }}>{r.userName}</span>
+                    <span style={{ ...s.rolePill, ...roleStyle(r.user_role) }}>{r.user_role}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: typeMeta.color + "18", color: typeMeta.color }}>{typeMeta.label}</span>
+                    <span style={{ ...s.statusPill, background: statusMeta.background, color: statusMeta.color }}>{statusMeta.label}</span>
+                  </div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#243E36", marginBottom: 2 }}>{r.subject}</p>
+                  <p style={{ fontSize: 12, color: "#5a7a6e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.message}</p>
+                </div>
+                <span style={{ fontSize: 11, color: "#9ab5a0", whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(r.created_at)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {viewing && (
+        <SupportRequestDetailModal
+          request={viewing}
+          onClose={() => setViewing(null)}
+          onUpdated={() => { setViewing(null); onRefresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// MODAL: SUPPORT REQUEST DETAIL / RESPOND
+// ─────────────────────────────────────────────
+function SupportRequestDetailModal({ request, onClose, onUpdated }) {
+  const [adminResponse, setAdminResponse] = useState(request.admin_response || "");
+  const [status,        setStatus]        = useState(request.status);
+  const [saving,        setSaving]        = useState(false);
+  const [error,         setError]         = useState("");
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const typeMeta = REQUEST_TYPE_META(request.request_type);
+
+  const handleSave = async () => {
+    setSaving(true); setError("");
+    try {
+      await respondToSupportRequest(request.id, { adminResponse: adminResponse.trim(), status });
+      onUpdated();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div style={s.modalOverlay} onClick={onClose}>
+      <div style={{ ...s.modal, maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+        <div style={s.modalHead}>
+          <div>
+            <h2 style={s.modalTitle}>{request.subject}</h2>
+            <p style={{ fontSize: 12, color: "#9ab5a0", marginTop: 4 }}>
+              {request.userName} ({request.userEmail}) · {request.user_role}
+            </p>
+          </div>
+          <button style={s.modalClose} onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {error && <ErrorBanner message={error} />}
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: typeMeta.color + "18", color: typeMeta.color }}>{typeMeta.label}</span>
+            <span style={{ fontSize: 11, color: "#9ab5a0" }}>Sent {timeAgo(request.created_at)}</span>
+          </div>
+
+          <div style={{ background: "#F1F7ED", borderRadius: 10, padding: "14px 16px" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#7CA982", marginBottom: 8 }}>Message</p>
+            <p style={{ fontSize: 14, color: "#243E36", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{request.message}</p>
+          </div>
+
+          <div style={s.fieldGroup}>
+            <label style={s.label}>Status</label>
+            <select value={status} onChange={e => setStatus(e.target.value)} style={s.input} className="lms-input">
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div style={s.fieldGroup}>
+            <label style={s.label}>Your Response (optional)</label>
+            <textarea
+              placeholder="Write a response to this user..."
+              value={adminResponse}
+              onChange={e => setAdminResponse(e.target.value)}
+              rows={4}
+              style={{ ...s.input, resize: "vertical" }}
+              className="lms-input"
+            />
+          </div>
+
+          <button
+            style={{ ...s.primaryBtn, justifyContent: "center", width: "100%", opacity: saving ? 0.7 : 1 }}
+            className="primary-btn"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Saving…</> : <><Send size={14} /> Save & Update</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  , document.body);
 }
 
 // ─────────────────────────────────────────────

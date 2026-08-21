@@ -3,12 +3,13 @@
 import TeacherCoursesPage from "./TeacherCoursesPage";
 import { getCourseStudents } from "../../services/courseService";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, LayoutDashboard, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, Clock, Users, TrendingUp, Award, CheckCircle2, MessageSquare, Plus, Calendar, Send, AlertCircle, Eye, Trash2, GraduationCap, BookMarked, ClipboardList, Loader2, RefreshCw, Search, ChevronDown, ChevronUp, UserX, ExternalLink, Link, CheckSquare, EyeOff, UserPlus, Sparkles, PartyPopper, } from "lucide-react";
+import { BookOpen, LayoutDashboard, FileText, Star, Bell, Mail, LogOut, Menu, X, ChevronRight, Clock, Users, TrendingUp, Award, CheckCircle2, MessageSquare, Plus, Calendar, Send, AlertCircle, Eye, Trash2, GraduationCap, BookMarked, ClipboardList, Loader2, RefreshCw, Search, ChevronDown, ChevronUp, UserX, ExternalLink, Link, CheckSquare, EyeOff, UserPlus, Sparkles, PartyPopper, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { getTeacherDashboardStats, getTeacherPendingSubmissions, getTeacherCourseAnalytics, getTeacherTodaySchedule, getTeacherAssignments, deleteAssignment, getTeacherStudents, getTeacherGradebook, getTeacherAnnouncements, postAnnouncement, deleteAnnouncement, gradeSubmission, saveGradebookConfig, saveManualScore, } from "../../services/teacherService";
 import { updateCourseTerms, createStudentAccount } from "../../services/courseService";
 import { supabase } from "../../services/supabase";
+import { sendSupportRequest, canSendSupportRequest } from "../../services/supportService";
 import { createPortal } from "react-dom";
 import logo from "../../assets/logo.png";
 import * as XLSX from "xlsx";
@@ -157,6 +158,172 @@ function EmptyState({ icon, text, action, onAction }) {
 }
 
 // ─────────────────────────────────────────────
+// MODAL: MESSAGE ADMIN (Support Request)
+// ─────────────────────────────────────────────
+function SupportRequestModal({ userId, userRole, onClose }) {
+  const [requestType,   setRequestType]   = useState("general");
+  const [subject,       setSubject]       = useState("");
+  const [message,       setMessage]       = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState("");
+  const [success,       setSuccess]       = useState(false);
+  const [checkingLimit, setCheckingLimit] = useState(true);
+  const [canSend,       setCanSend]       = useState(true);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const allowed = await canSendSupportRequest(userId);
+        setCanSend(allowed);
+      } catch (_) {
+        setCanSend(true);
+      } finally {
+        setCheckingLimit(false);
+      }
+    })();
+  }, [userId]);
+
+  const requestTypes = [
+    { value: "general",          label: "General Message" },
+    { value: "account_deletion", label: "Request Account Deletion" },
+    { value: "bug_report",       label: "Report a Problem" },
+    { value: "other",            label: "Other" },
+  ];
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!subject.trim()) { setError("Please enter a subject."); return; }
+    if (!message.trim()) { setError("Please enter your message."); return; }
+
+    setLoading(true);
+    try {
+      await sendSupportRequest({ userId, userRole, requestType, subject: subject.trim(), message: message.trim() });
+      setSuccess(true);
+    } catch (e) {
+      setError(e.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={s.modalOverlay} onClick={onClose}>
+      <div style={{ ...s.modal, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+        <div style={s.modalHead}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 38, height: 38, background: "#e8f3ea", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Mail size={18} color="#7CA982" />
+            </div>
+            <div>
+              <h2 style={s.modalTitle}>Message Admin</h2>
+              <p style={{ fontSize: 12, color: "#9ab5a0", marginTop: 1 }}>Send a message directly to your administrator</p>
+            </div>
+          </div>
+          <button style={s.modalClose} onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <div style={{ padding: "20px 24px" }}>
+          {success ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "8px 0 16px" }}>
+              <div style={{ width: 64, height: 64, background: "#e8f3ea", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircle2 size={32} color="#7CA982" />
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#243E36", marginBottom: 4 }}>Message sent!</p>
+                <p style={{ fontSize: 14, color: "#5a7a6e" }}>Your admin will get back to you soon.</p>
+              </div>
+              <button style={{ ...s.primaryBtn, justifyContent: "center", width: "100%" }} className="primary-btn" onClick={onClose}>Done</button>
+            </div>
+          ) : checkingLimit ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}><Spinner size={20} /></div>
+          ) : !canSend ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "8px 0 16px" }}>
+              <div style={{ width: 64, height: 64, background: "#fff8e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <AlertCircle size={32} color="#e0a052" />
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#243E36", marginBottom: 4 }}>Daily limit reached</p>
+                <p style={{ fontSize: 14, color: "#5a7a6e" }}>You've already sent a message today. Please try again tomorrow.</p>
+              </div>
+              <button style={{ ...s.primaryBtn, justifyContent: "center", width: "100%" }} className="primary-btn" onClick={onClose}>Close</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {error && (
+                <div style={{ background: "#fce8e8", border: "1px solid #e08080", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#8b2020", display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertCircle size={14} /> {error}
+                </div>
+              )}
+
+              <div style={s.fieldGroup}>
+                <label style={s.label}>What is this about?</label>
+                <select
+                  value={requestType}
+                  onChange={e => setRequestType(e.target.value)}
+                  style={{ ...s.input, cursor: "pointer" }}
+                  className="lms-input"
+                >
+                  {requestTypes.map(rt => <option key={rt.value} value={rt.value}>{rt.label}</option>)}
+                </select>
+              </div>
+
+              <div style={s.fieldGroup}>
+                <label style={s.label}>Subject</label>
+                <input
+                  placeholder="Short summary of your message"
+                  value={subject}
+                  onChange={e => setSubject(e.target.value)}
+                  style={s.input}
+                  className="lms-input"
+                  maxLength={100}
+                />
+              </div>
+
+              <div style={s.fieldGroup}>
+                <label style={s.label}>Message</label>
+                <textarea
+                  placeholder="Type your message here..."
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  rows={5}
+                  style={{ ...s.input, resize: "vertical" }}
+                  className="lms-input"
+                  maxLength={1000}
+                />
+                <p style={{ fontSize: 11, color: "#9ab5a0", textAlign: "right" }}>{message.length}/1000</p>
+              </div>
+
+              <p style={{ fontSize: 11, color: "#9ab5a0" }}>Note: You can send only one message per day.</p>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button style={{ flex: 1, padding: "11px 0", border: "1.5px solid #e8f3ea", borderRadius: 9, background: "#fff", color: "#5a7a6e", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                  onClick={onClose} className="cancel-btn">Cancel</button>
+                <button
+                  style={{ ...s.primaryBtn, flex: 2, justifyContent: "center", opacity: loading ? 0.7 : 1 }}
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="primary-btn"
+                >
+                  {loading
+                    ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Sending…</>
+                    : "Send Message"
+                  }
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // ROOT COMPONENT
 // ─────────────────────────────────────────────
 export default function TeacherDashboard() {
@@ -169,6 +336,7 @@ export default function TeacherDashboard() {
   const notifRef = useRef(null);
   const [avatarOpen,          setAvatarOpen]          = useState(false);
   const [showChangePassword,  setShowChangePassword]  = useState(false);
+  const [showSupportModal,    setShowSupportModal]    = useState(false);
 
   const [notifications, setNotifications] = useState([]);
   const [notifLoading,  setNotifLoading]  = useState(false);
@@ -398,6 +566,9 @@ export default function TeacherDashboard() {
           </button>
           <span style={s.topTitle}>{NAV.find(n => n.id === activePage)?.label}</span>
           <div style={s.topRight}>
+            <button style={s.bellBtn} onClick={() => setShowSupportModal(true)} className="icon-btn" title="Message Admin">
+              <Mail size={17} color="#243E36" />
+            </button>
             <div style={{ position: "relative" }} ref={notifRef}>
               <button style={s.bellBtn} onClick={handleBellClick} className="icon-btn">
                 <Bell size={17} color="#243E36" />
@@ -571,6 +742,14 @@ export default function TeacherDashboard() {
       </div>
             {showChangePassword && (
         <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
+
+      {showSupportModal && (
+        <SupportRequestModal
+          userId={user?.id}
+          userRole="teacher"
+          onClose={() => setShowSupportModal(false)}
+        />
       )}
     </div>
   );

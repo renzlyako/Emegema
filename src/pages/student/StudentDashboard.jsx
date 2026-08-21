@@ -1,7 +1,7 @@
 // src/pages/student/StudentDashboard.jsx
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, LayoutDashboard, GraduationCap, FileText, Star, Bell, LogOut, Menu, X, ChevronRight, ChevronDown, Clock, TrendingUp, Award, AlertCircle, CheckCircle2, BookMarked, Calendar, MessageSquare, ClipboardList, Loader2, RefreshCw, Search, Play, CheckSquare, Plus, Hash, Eye, EyeOff, Calculator, FlaskConical, Languages, Landmark, Dumbbell, Palette, Music2, Cpu, HeartHandshake, Sparkles, PartyPopper, } from "lucide-react";
+import { BookOpen, LayoutDashboard, GraduationCap, FileText, Star, Bell, Mail, LogOut, Menu, X, ChevronRight, ChevronDown, Clock, TrendingUp, Award, AlertCircle, CheckCircle2, BookMarked, Calendar, MessageSquare, ClipboardList, Loader2, RefreshCw, Search, Play, CheckSquare, Plus, Hash, Eye, EyeOff, Calculator, FlaskConical, Languages, Landmark, Dumbbell, Palette, Music2, Cpu, HeartHandshake, Sparkles, PartyPopper, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { getStudentProfile, getStudentCourses, getStudentAssignments, getStudentGrades, getStudentAnnouncements, getStudentNotifications, markNotificationRead, markAnnouncementsRead, } from "../../services/studentService";
@@ -10,6 +10,7 @@ import { getStudentAssessments } from "../../services/assessmentService";
 import StudentAssessmentTaker from "./StudentAssessmentTaker";
 import StudentCoursePage from "./StudentCoursePage";
 import { supabase } from "../../services/supabase";
+import { sendSupportRequest, canSendSupportRequest } from "../../services/supportService";
 import logo from "../../assets/logo.png";
 
 // ─────────────────────────────────────────────
@@ -246,6 +247,168 @@ function JoinCourseModal({ studentId, onClose, onJoined }) {
 }
 
 // ─────────────────────────────────────────────
+// MODAL: MESSAGE ADMIN (Support Request)
+// ─────────────────────────────────────────────
+function SupportRequestModal({ userId, userRole, onClose }) {
+  const [requestType,   setRequestType]   = useState("general");
+  const [subject,       setSubject]       = useState("");
+  const [message,       setMessage]       = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState("");
+  const [success,       setSuccess]       = useState(false);
+  const [checkingLimit, setCheckingLimit] = useState(true);
+  const [canSend,       setCanSend]       = useState(true);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const allowed = await canSendSupportRequest(userId);
+        setCanSend(allowed);
+      } catch (_) {
+        setCanSend(true);
+      } finally {
+        setCheckingLimit(false);
+      }
+    })();
+  }, [userId]);
+
+  const requestTypes = [
+    { value: "general",          label: "General Message" },
+    { value: "account_deletion", label: "Request Account Deletion" },
+    { value: "bug_report",       label: "Report a Problem" },
+    { value: "other",            label: "Other" },
+  ];
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!subject.trim()) { setError("Please enter a subject."); return; }
+    if (!message.trim()) { setError("Please enter your message."); return; }
+
+    setLoading(true);
+    try {
+      await sendSupportRequest({ userId, userRole, requestType, subject: subject.trim(), message: message.trim() });
+      setSuccess(true);
+    } catch (e) {
+      setError(e.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={jm.overlay} onClick={onClose}>
+      <div style={{ ...jm.modal, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+        <div style={jm.header}>
+          <div style={{ ...jm.headerIcon, background: "#e8f3ea" }}>
+            <Mail size={20} color="#7CA982" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h2 style={jm.title}>Message Admin</h2>
+            <p style={jm.subtitle}>Send a message directly to your administrator</p>
+          </div>
+          <button style={jm.closeBtn} onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <div style={jm.body}>
+          {success ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "8px 0 16px" }}>
+              <div style={{ width: 64, height: 64, background: "#e8f3ea", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircle2 size={32} color="#7CA982" />
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#243E36", marginBottom: 4 }}>Message sent!</p>
+                <p style={{ fontSize: 14, color: "#5a7a6e" }}>Your admin will get back to you soon.</p>
+              </div>
+              <button style={{ ...jm.joinBtn, width: "100%" }} onClick={onClose}>Done</button>
+            </div>
+          ) : checkingLimit ? (
+            <Spinner />
+          ) : !canSend ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "8px 0 16px" }}>
+              <div style={{ width: 64, height: 64, background: "#fff8e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <AlertCircle size={32} color="#e0a052" />
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#243E36", marginBottom: 4 }}>Daily limit reached</p>
+                <p style={{ fontSize: 14, color: "#5a7a6e" }}>You've already sent a message today. Please try again tomorrow.</p>
+              </div>
+              <button style={{ ...jm.joinBtn, width: "100%" }} onClick={onClose}>Close</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {error && (
+                <div style={{ background: "#fce8e8", border: "1px solid #e08080", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#8b2020", display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertCircle size={14} /> {error}
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={jm.label}>What is this about?</label>
+                <select
+                  value={requestType}
+                  onChange={e => setRequestType(e.target.value)}
+                  style={{ ...jm.input, fontSize: 14, cursor: "pointer" }}
+                  className="lms-input"
+                >
+                  {requestTypes.map(rt => <option key={rt.value} value={rt.value}>{rt.label}</option>)}
+                </select>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={jm.label}>Subject</label>
+                <input
+                  placeholder="Short summary of your message"
+                  value={subject}
+                  onChange={e => setSubject(e.target.value)}
+                  style={{ ...jm.input, fontSize: 14 }}
+                  className="lms-input"
+                  maxLength={100}
+                />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={jm.label}>Message</label>
+                <textarea
+                  placeholder="Type your message here..."
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  rows={5}
+                  style={{ ...jm.input, fontSize: 14, resize: "vertical", fontFamily: "'DM Sans', sans-serif" }}
+                  className="lms-input"
+                  maxLength={1000}
+                />
+                <p style={{ fontSize: 11, color: "#9ab5a0", textAlign: "right" }}>{message.length}/1000</p>
+              </div>
+
+              <p style={{ fontSize: 11, color: "#9ab5a0" }}>Note: You can send only one message per day.</p>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button style={jm.cancelBtn} onClick={onClose} className="cancel-btn">Cancel</button>
+                <button
+                  style={{ ...jm.joinBtn, opacity: loading ? 0.7 : 1 }}
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading
+                    ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Sending…</>
+                    : "Send Message"
+                  }
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // ROOT COMPONENT
 // ─────────────────────────────────────────────
 export default function StudentDashboard() {
@@ -259,6 +422,7 @@ export default function StudentDashboard() {
   const [takingAssessment, setTakingAssessment]  = useState(null);
   const [viewingCourse,    setViewingCourse]      = useState(null);
   const [showJoinModal,    setShowJoinModal]      = useState(false);
+  const [showSupportModal, setShowSupportModal]   = useState(false);
   const [avatarOpen,           setAvatarOpen]           = useState(false);
   const [showChangePassword,   setShowChangePassword]   = useState(false);
 
@@ -484,6 +648,9 @@ const markAnnouncementsAsRead = useCallback(async () => {
           </button>
           <div style={s.topbarTitle}>{NAV_ITEMS.find(n => n.id === activePage)?.label ?? "Dashboard"}</div>
           <div style={s.topbarRight}>
+            <button style={s.messageBtn} onClick={() => setShowSupportModal(true)} className="message-btn" title="Message Admin">
+              <Mail size={18} color="#243E36" />
+            </button>
             <div style={{ position: "relative" }} ref={notifRef}>
               <button style={s.notifBtn} onClick={() => setNotifOpen(v => !v)} className="notif-btn">
                 <Bell size={18} color="#243E36" />
@@ -611,6 +778,14 @@ const markAnnouncementsAsRead = useCallback(async () => {
 
       {showChangePassword && (
         <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
+
+      {showSupportModal && (
+        <SupportRequestModal
+          userId={user?.id}
+          userRole="student"
+          onClose={() => setShowSupportModal(false)}
+        />
       )}
     </div>
   );
@@ -1342,6 +1517,7 @@ const s = {
   menuBtn: { background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "none" },
   topbarTitle: { flex: 1, fontSize: 15, fontWeight: 600, color: "#243E36" },
   topbarRight: { display: "flex", alignItems: "center", gap: 12 },
+  messageBtn: { position: "relative", background: "#F1F7ED", border: "1px solid #e8f3ea", borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
   notifBtn: { position: "relative", background: "#F1F7ED", border: "1px solid #e8f3ea", borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
   notifDot: { position: "absolute", top: -4, right: -4, background: "#e05252", color: "#fff", fontSize: 9, fontWeight: 700, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" },
   notifDropdown: { position: "absolute", top: "calc(100% + 10px)", right: 0, width: 320, background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, boxShadow: "0 8px 32px rgba(36,62,54,0.12)", overflow: "hidden", zIndex: 50, maxHeight: 420, overflowY: "auto" },
@@ -1462,6 +1638,7 @@ const css = `
   .cancel-btn:hover       { background: #e8f3ea !important; }
   .filter-tab:hover:not([style*="background: rgb(36"]) { background: #e8f3ea !important; border-color: #c8ddc9 !important; }
   .avatar-trigger-btn:hover { background: #e8f3ea !important; }
+  .message-btn:hover { background: #e8f3ea !important; }
   .avatar-dropdown-item:hover { background: #f5faf5 !important; }
   .avatar-dropdown-item-danger:hover { background: #fce8e8 !important; }
   .lms-input:focus   { border-color: #7CA982 !important; box-shadow: 0 0 0 3px rgba(124,169,130,0.15); }
