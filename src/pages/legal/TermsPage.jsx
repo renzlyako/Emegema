@@ -16,90 +16,113 @@ export default function TermsPage() {
         <h2>1. Acceptance of Terms</h2>
         <p>
           By accessing or using Emegema ("the platform"), you agree to these Terms & Conditions. If you do not
-          agree, do not use the platform. If you're using Emegema on behalf of a school, "you" includes that
-          school and everyone it authorizes to use the account it creates.
+          agree, do not use the platform.
+        </p>
+        <p>
+          Emegema is not affiliated with, operated by, or connected to any school. Teachers use Emegema
+          independently to organize and manage their own classes.
         </p>
 
         <h2>2. Eligibility and Account Creation</h2>
         <p>
-          Emegema is invitation-only. There is no public self-registration. Accounts are created by a school
-          administrator or teacher, who is responsible for the accuracy of the information provided when creating
-          an account on someone else's behalf.
+          Emegema does not offer public self-registration for students. Student accounts are created by a
+          teacher. Teacher accounts may be created by the teacher themselves, subject to approval by Emegema's
+          administrator, or created directly by Emegema's administrator.
+        </p>
+        <p>
+          By creating a student account, the teacher represents and warrants that they have obtained any consent
+          required to do so, including consent from a parent or guardian if the student is a minor. Emegema
+          relies on this representation and does not independently verify a student's age or consent status —
+          see Section 3 below.
         </p>
         <p>
           You are responsible for keeping your login credentials confidential and for all activity that happens
-          under your account. Tell your administrator immediately if you believe your account has been accessed
-          without your permission.
+          under your account. Tell us immediately if you believe your account has been accessed without your
+          permission.
         </p>
 
-        <h2>3. User Roles and Responsibilities</h2>
-        <p>Emegema has three types of accounts, each with different capabilities and responsibilities.</p>
-
-        <p><strong>Administrators</strong></p>
+        <h2>3. Teacher Responsibility for Student Accounts</h2>
+        <p>Teachers are solely responsible for:</p>
         <ul>
-          <li>Create teacher and student accounts</li>
-          <li>Are the only role able to delete student and teacher accounts</li>
-          <li>Can view the actions of every user on the platform, including teacher activity such as account and course creation</li>
-          <li>Can archive or delete a teacher's course</li>
+          <li>Determining whether a student they are adding to Emegema is a minor</li>
+          <li>Obtaining consent from the student's parent or guardian before creating the student's account, where the student is a minor</li>
+          <li>Ensuring the accuracy of the name and email address provided for each student</li>
+          <li>Using student data only for legitimate teaching purposes within their own classes</li>
         </ul>
         <p>
-          Administrators are responsible for managing accounts and courses appropriately, and for acting on
-          deletion or access requests in line with the Privacy Policy.
+          Emegema may suspend or remove a student account at any time if we have reason to believe it was created
+          without appropriate consent.
         </p>
+
+        <h2>4. User Roles and Responsibilities</h2>
+        <p>Emegema has three types of accounts, each with different capabilities and responsibilities.</p>
+
+        <p><strong>Administrator</strong></p>
+        <ul>
+          <li>Operates and oversees the Emegema platform</li>
+          <li>Approves teacher accounts</li>
+          <li>Can view account information as needed to operate, secure, and support the platform</li>
+          <li>Acts on account deletion requests</li>
+        </ul>
 
         <p><strong>Teachers</strong></p>
         <ul>
-          <li>Create student accounts</li>
-          <li>Create and manage courses</li>
-          <li>Create assignments, assessments, and announcements</li>
-          <li>Configure attendance and grading for their own courses</li>
+          <li>Create student accounts, subject to Section 3 above</li>
+          <li>Create and manage their own classes, assignments, quizzes, and activities</li>
+          <li>Mark attendance and record grades for their own students</li>
+          <li>Communicate with their own students through the platform</li>
         </ul>
         <p>
           Teachers are responsible for the accuracy of grades and content they post, and for using student data
-          only for legitimate teaching purposes within their own courses.
+          only for legitimate teaching purposes within their own classes.
         </p>
 
         <p><strong>Students</strong></p>
         <ul>
-          <li>Join courses using a course code provided by a teacher</li>
-          <li>View, answer, and submit assignments and assessments</li>
+          <li>Answer and submit quizzes, exams, activities, and assignments</li>
           <li>View their own grades and attendance</li>
+          <li>Communicate with their teacher through the platform</li>
         </ul>
         <p>
           Students are responsible for the work they submit and for keeping their own account credentials
           private.
         </p>
 
-        <h2>4. Acceptable Use</h2>
+        <h2>5. Acceptable Use</h2>
         <p>When using Emegema, you agree not to:</p>
         <ul>
           <li>Share your account or login credentials with anyone else</li>
           <li>Attempt to access another user's account or data without authorization</li>
           <li>Attempt to bypass, disable, or interfere with the platform's security features</li>
           <li>Upload or submit content that is unlawful, harassing, or infringes someone else's rights</li>
-          <li>Use the platform for any purpose unrelated to teaching, learning, or school administration</li>
+          <li>Use the platform for any purpose unrelated to teaching or learning</li>
         </ul>
         <p>
-          Accounts found to violate acceptable use may be suspended or deleted by an administrator.
+          Accounts found to violate acceptable use may be suspended or deleted by the administrator.
         </p>
 
-        <h2>5. Content Ownership</h2>
+        <h2>6. Content Ownership</h2>
         <p>
-          Course materials, assignments, and assessments created by a teacher remain that teacher's (or their
-          school's) content. Work submitted by a student remains that student's content. By submitting content to
-          Emegema, you grant the platform and your school the right to store, display, and process it as needed
-          to provide the service — for example, showing a submission to the teacher who assigned it, or including
-          a grade in the gradebook.
+          Course materials, assignments, quizzes, and activities created by a teacher remain that teacher's
+          content. Work submitted by a student remains that student's content. By submitting content to
+          Emegema, you grant the platform the right to store, display, and process it as needed to provide the
+          service — for example, showing a submission to the teacher who assigned it, or displaying a grade to
+          the student who earned it.
         </p>
 
-        <h2>6. Account Suspension and Termination</h2>
+        <h2>7. Account Deletion</h2>
         <p>
-          An administrator may suspend or delete an account at their discretion, including for violations of
-          these Terms, at the request of the school, or when an account is no longer needed (for example, a
-          student who has left the school).
+          You can request deletion of your account at any time using the "Request Account Deletion" feature
+          after logging in. This sends your request directly to Emegema's administrator, who will act on it in
+          line with our Privacy Policy.
+        </p>
+        <p>
+          The administrator may also suspend or delete an account at their discretion for violations of these
+          Terms, or where a teacher has requested removal of a student they added, subject to our Privacy
+          Policy.
         </p>
 
-        <h2>7. Disclaimer and Limitation of Liability</h2>
+        <h2>8. Disclaimer and Limitation of Liability</h2>
         <p>
           Emegema is provided "as is." While we take reasonable steps to keep the platform secure and available,
           we do not guarantee that it will be uninterrupted or error-free. To the extent permitted by law,
@@ -107,15 +130,15 @@ export default function TermsPage() {
           loss of data due to circumstances outside our reasonable control.
         </p>
 
-        <h2>8. Changes to These Terms</h2>
+        <h2>9. Changes to These Terms</h2>
         <p>
           We may update these Terms from time to time. If we make material changes, we'll update the
-          "Last updated" date above.
+          "Last updated" date above and, where appropriate, ask you to re-confirm your agreement.
         </p>
 
-        <h2>9. Contact Us</h2>
+        <h2>10. Contact Us</h2>
         <p>
-          If you have questions about these Terms, contact your school administrator.
+          If you have questions about these Terms, contact us at [contact email].
         </p>
       </div>
     </LegalPageLayout>

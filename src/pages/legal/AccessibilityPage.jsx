@@ -15,7 +15,7 @@ export default function AccessibilityPage() {
       <div className="legal-prose">
         <h2>Our Commitment</h2>
         <p>
-          Emegema is used by students, teachers, and administrators with a range of needs and abilities. We want
+          Emegema is used by teachers and students with a range of needs and abilities. We want
           the platform to be usable by everyone, and we're working to make that consistently true across the
           entire system.
         </p>
@@ -43,8 +43,8 @@ export default function AccessibilityPage() {
           find and fix accessibility gaps.
         </p>
         <p>
-          Please contact your school administrator to report an accessibility issue, so it can be relayed to us
-          with the context we need to address it.
+          Please contact us at [contact email] to report an accessibility issue, so we can address it with the
+          context we need. Students may also ask their teacher to relay the issue to us on their behalf.
         </p>
       </div>
     </LegalPageLayout>
