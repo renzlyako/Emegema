@@ -2,13 +2,22 @@
 import { supabase } from "./supabase";
 import { getCourseStudents } from "./courseService";
 
+
+const ASSESSMENT_SAFE_COLUMNS = `
+  id, course_id, teacher_id, title, description, type, status,
+  due_date, time_limit, max_points, created_at, updated_at,
+  question_pool_size, randomize_questions, randomize_choices,
+  show_answers_after_submit, time_per_question, term_id,
+  lecture_id, require_fullscreen, access_unlocked
+`;
+
 // ─────────────────────────────────────────────
 // TEACHER: GET ASSESSMENTS FOR A COURSE
 // ─────────────────────────────────────────────
 export async function getCourseAssessments(courseId) {
   const { data, error } = await supabase
     .from("assessments")
-    .select("*")
+    .select(ASSESSMENT_SAFE_COLUMNS)
     .eq("course_id", courseId)
     .order("created_at", { ascending: false });
 
@@ -66,7 +75,7 @@ export async function createAssessment({
       show_answers_after_submit,
       term_id:            termId,
     })
-    .select()
+    .select(ASSESSMENT_SAFE_COLUMNS)
     .single();
 
   if (error) throw new Error(error.message);
@@ -81,7 +90,7 @@ export async function updateAssessment(assessmentId, updates) {
     .from("assessments")
     .update(updates)
     .eq("id", assessmentId)
-    .select()
+    .select(ASSESSMENT_SAFE_COLUMNS)
     .single();
 
   if (error) throw new Error(error.message);
@@ -231,7 +240,7 @@ export async function getAssessmentQuestions(assessmentId) {
 export async function getAssessmentWithQuestions(assessmentId) {
   const { data: assessment, error } = await supabase
     .from("assessments")
-    .select("*")
+    .select(ASSESSMENT_SAFE_COLUMNS)
     .eq("id", assessmentId)
     .single();
 
@@ -668,7 +677,7 @@ export async function getTeacherAssessmentsForDuplication(teacherId) {
 export async function saveAssessmentAsTemplate(assessmentId, teacherId, templateTitle) {
   const { data: source, error: sourceErr } = await supabase
     .from("assessments")
-    .select("*, courses ( title )")
+    .select(`${ASSESSMENT_SAFE_COLUMNS}, courses ( title )`)
     .eq("id", assessmentId)
     .single();
   if (sourceErr) throw new Error(sourceErr.message);
@@ -785,7 +794,7 @@ export async function applyTemplateToCourse({ templateId, targetCourseId, teache
       show_answers_after_submit: template.show_answers_after_submit,
       term_id: termId,
     })
-    .select()
+    .select(ASSESSMENT_SAFE_COLUMNS)
     .single();
   if (createErr) throw new Error(createErr.message);
 

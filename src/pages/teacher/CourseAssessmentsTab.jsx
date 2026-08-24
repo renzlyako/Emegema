@@ -712,17 +712,24 @@ function QuestionBuilder({ assessmentId, assessment, onBack, onSaved }) {
     randomize_questions:      false,
     randomize_choices:        false,
     question_pool_size:       0,
-    show_answers_after_submit: false, 
+    show_answers_after_submit: false,
+    timeLimitHours:            "",
+    timeLimitMins:             "",
+    timePerQuestion:           "",
   });
 
   useEffect(() => {
     getAssessmentWithQuestions(assessmentId)
       .then(data => {
+        const totalMins = data.time_limit || 0;
         setPoolSettings({
           randomize_questions:      data.randomize_questions       ?? false,
           randomize_choices:        data.randomize_choices         ?? false,
           question_pool_size:       data.question_pool_size        ?? 0,
-          show_answers_after_submit: data.show_answers_after_submit ?? false, 
+          show_answers_after_submit: data.show_answers_after_submit ?? false,
+          timeLimitHours:            totalMins > 0 ? Math.floor(totalMins / 60) : "",
+          timeLimitMins:             totalMins > 0 ? totalMins % 60 : "",
+          timePerQuestion:           data.time_per_question ?? "",
         });
 
         const qs = data.questions.map(q => ({
@@ -772,12 +779,19 @@ function QuestionBuilder({ assessmentId, assessment, onBack, onSaved }) {
 
     const poolSize = Number(poolSettings.question_pool_size) || 0;
     const computedMaxPoints = questions.reduce((sum, q) => sum + (Number(q.points) || 1), 0);
+
+    const timePerQuestion   = poolSettings.timePerQuestion ? Number(poolSettings.timePerQuestion) : null;
+    const totalTimeLimitMin = (Number(poolSettings.timeLimitHours) || 0) * 60 + (Number(poolSettings.timeLimitMins) || 0);
+    const timeLimit         = !timePerQuestion && totalTimeLimitMin > 0 ? totalTimeLimitMin : null;
+
     await updateAssessment(assessmentId, {
       randomize_questions:      poolSettings.randomize_questions,
       randomize_choices:        poolSettings.randomize_choices,
       question_pool_size:       poolSize > 0 ? poolSize : null,
       show_answers_after_submit: poolSettings.show_answers_after_submit,
-      max_points:                computedMaxPoints, 
+      max_points:                computedMaxPoints,
+      time_limit:                timeLimit,
+      time_per_question:         timePerQuestion,
     });
 
       if (andPublish) {
@@ -975,6 +989,59 @@ function PoolSettingsPanel({ settings, poolCount, totalCount, onChange, onClose 
               ? <ToggleRight size={32} />
               : <ToggleLeft size={32} />}
           </button>
+        </div>
+      </div>
+
+      {/* ── TIMER SECTION ── */}
+      <div style={{ ...s.sectionDivider, marginTop: 20 }}>
+        <span style={s.sectionLabel}><Clock size={12} /> Timer Settings</span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 4 }}>
+        <div style={s.settingCard}>
+          <label style={{ ...s.label, color: settings.timePerQuestion ? "#c8ddc9" : "#243E36" }}>
+            Time Limit (hours + minutes)
+            {settings.timePerQuestion && <span style={{ fontSize: 10, color: "#e0a052", marginLeft: 6, fontWeight: 400 }}>disabled — using per-question timer</span>}
+          </label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+            <input
+              type="number" min="0" max="23" placeholder="0"
+              value={settings.timeLimitHours ?? ""}
+              onChange={e => set("timeLimitHours", e.target.value)}
+              disabled={!!settings.timePerQuestion}
+              style={{ ...s.input, background: settings.timePerQuestion ? "#f5f5f5" : "#fff", textAlign: "center" }}
+              className="lms-input"
+            />
+            <span style={{ fontSize: 14, color: "#9ab5a0", fontWeight: 700 }}>:</span>
+            <input
+              type="number" min="0" max="59" placeholder="0"
+              value={settings.timeLimitMins ?? ""}
+              onChange={e => set("timeLimitMins", e.target.value)}
+              disabled={!!settings.timePerQuestion}
+              style={{ ...s.input, background: settings.timePerQuestion ? "#f5f5f5" : "#fff", textAlign: "center" }}
+              className="lms-input"
+            />
+          </div>
+          <p style={{ fontSize: 11, color: "#9ab5a0", marginTop: 6 }}>Total time for the whole assessment. Leave both blank for no limit.</p>
+        </div>
+
+        <div style={s.settingCard}>
+          <label style={{ ...s.label, color: (settings.timeLimitHours || settings.timeLimitMins) && !settings.timePerQuestion ? "#c8ddc9" : "#243E36" }}>
+            Time per Question (seconds)
+            {(settings.timeLimitHours || settings.timeLimitMins) && !settings.timePerQuestion && <span style={{ fontSize: 10, color: "#e0a052", marginLeft: 6, fontWeight: 400 }}>disabled — using overall timer</span>}
+          </label>
+          <input
+            type="number" min="5" max="600" placeholder="e.g. 30"
+            value={settings.timePerQuestion ?? ""}
+            onChange={e => {
+              set("timePerQuestion", e.target.value);
+              if (e.target.value) { set("timeLimitHours", ""); set("timeLimitMins", ""); }
+            }}
+            disabled={!!((settings.timeLimitHours || settings.timeLimitMins) && !settings.timePerQuestion)}
+            style={{ ...s.input, marginTop: 6, background: (settings.timeLimitHours || settings.timeLimitMins) && !settings.timePerQuestion ? "#f5f5f5" : "#fff" }}
+            className="lms-input"
+          />
+          <p style={{ fontSize: 11, color: "#9ab5a0", marginTop: 6 }}>Per-question countdown. Leave blank for none.</p>
         </div>
       </div>
 
