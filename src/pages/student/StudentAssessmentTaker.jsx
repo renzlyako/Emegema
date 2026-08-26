@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Clock, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, XCircle, Award, FileText, AlignLeft, Maximize, Shield, Send, Loader2, EyeOff, Lock, } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useAuthStore } from "../../store/authStore";
-import { getAssessmentPreview, getQuestionsForStudent, submitAssessment, sendAssessmentNotifications, getOrCreateAttempt, saveAttemptProgress, completeAttempt, verifyExamAccessCode, } from "../../services/assessmentService";
+import { getAssessmentPreview, getQuestionsForStudent, submitAssessment, sendAssessmentNotifications, getOrCreateAttempt, saveAttemptProgress, completeAttempt, verifyExamAccessCode, getAttemptQuestionsSecure, submitAssessmentSecure, getAttemptReview, getAssessmentPreviewStats, } from "../../services/assessmentService";
 
 function getInitials(name = "") {
   return name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
@@ -26,9 +26,9 @@ export default function StudentAssessmentTaker({ assessment, onBack, onDone }) {
     setPhase("taking");
   };
 
-  const handleSubmit = (answers, questions, autoSubmitted = false, submissionResult = null) => {
+  const handleSubmit = (answers, questions, autoSubmitted = false, submissionResult = null, attemptId = null) => {
   setPhase("results");
-  setResult({ answers, questions, autoSubmitted, submissionResult });
+  setResult({ answers, questions, autoSubmitted, submissionResult, attemptId });
   };
 
   if (phase === "pre") return <PreScreen assessment={assessment} onStart={handleStart} onBack={onBack} />;
@@ -42,7 +42,8 @@ export default function StudentAssessmentTaker({ assessment, onBack, onDone }) {
 // ─────────────────────────────────────────────
 function PreScreen({ assessment, onStart, onBack }) {
   const [loading,        setLoading]        = useState(true);
-  const [questions,      setQuestions]      = useState([]);
+  const [questionCount,  setQuestionCount]  = useState(0);
+  const [hasManualType,  setHasManualType]  = useState(false);
   const [error,          setError]          = useState(null);
   const [liveAssessment, setLiveAssessment] = useState(assessment);
 
@@ -54,11 +55,12 @@ function PreScreen({ assessment, onStart, onBack }) {
   useEffect(() => {
     Promise.all([
       getAssessmentPreview(assessment.id),
-      getQuestionsForStudent(assessment.id),
+      getAssessmentPreviewStats(assessment.id),
     ])
-      .then(([fresh, qs]) => {
+      .then(([fresh, stats]) => {
         setLiveAssessment(fresh);
-        setQuestions(qs);
+        setQuestionCount(stats.count || 0);
+        setHasManualType((stats.types || []).some(t => ["short_answer", "essay"].includes(t)));
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -78,7 +80,7 @@ function PreScreen({ assessment, onStart, onBack }) {
         setShowCodeModal(false);
         onStart(liveAssessment);
       } else {
-        setCodeError("Maling code. Subukan ulit o tanungin ang guro mo.");
+        setCodeError("Invalid code. Please try again or ask your teacher for the correct code.");
       }
     } catch (e) {
       setCodeError(e.message);
@@ -89,14 +91,14 @@ function PreScreen({ assessment, onStart, onBack }) {
 
   const timerMode = getTimerMode(liveAssessment);
   const totalTime = timerMode === "per_question"
-    ? (liveAssessment.time_per_question || 30) * questions.length
+    ? (liveAssessment.time_per_question || 30) * questionCount
     : timerMode === "overall"
       ? (liveAssessment.time_limit || 0) * 60
       : 0;
 
   const mins      = Math.floor(totalTime / 60);
   const secs      = totalTime % 60;
-  const hasManual = questions.some(q => ["short_answer", "essay"].includes(q.type));
+  const hasManual = hasManualType;
 
   return (
     <div style={ps.root}>
@@ -121,7 +123,7 @@ function PreScreen({ assessment, onStart, onBack }) {
         {!loading && (
           <div style={ps.statsRow}>
             <div style={ps.stat}>
-              <p style={ps.statNum}>{questions.length}</p>
+              <p style={ps.statNum}>{questionCount}</p>
               <p style={ps.statLabel}>Questions</p>
             </div>
             <div style={ps.statDivider} />
@@ -291,18 +293,17 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
     setSubmitting(true);
     let submissionResult = null;
     try {
-    const result = await submitAssessment(
-    assessment.id, studentId, answersRef.current, questionsRef.current
+    const result = await submitAssessmentSecure(
+    attemptIdRef.current, answersRef.current
     );
     submissionResult = result;
-    await completeAttempt(attemptIdRef.current);
     await sendAssessmentNotifications(
     assessment.id, studentId,
     result.autoScore, result.maxScore, result.status
     );
     } catch (e) { console.error(e); }
 
-    onSubmit(answersRef.current, questionsRef.current, reason === "violation", submissionResult);
+    onSubmit(answersRef.current, questionsRef.current, reason === "violation", submissionResult, attemptIdRef.current);
     }, [assessment.id, studentId, onSubmit]);
 
   const lockCurrentAndAdvance = useCallback((fromIdx) => {
@@ -318,11 +319,9 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
   }, [autoSubmit]);
 
   useEffect(() => {
-    Promise.all([
-      getQuestionsForStudent(assessment.id),
-      getOrCreateAttempt(assessment.id, studentId),
-    ])
-      .then(([qs, attempt]) => {
+    getOrCreateAttempt(assessment.id, studentId)
+      .then(async (attempt) => {
+        const qs = await getAttemptQuestionsSecure(attempt.id);
         setQuestions(qs);
         questionsRef.current = qs;
 
@@ -643,38 +642,27 @@ function EssayInput({ value, onChange }) {
 // PHASE 3: RESULTS SCREEN
 // ─────────────────────────────────────────────
 function ResultsScreen({ assessment, result, studentId, studentName, onDone }) {
-  const { answers, questions, autoSubmitted, submissionResult } = result;
+  const { autoSubmitted, submissionResult, attemptId } = result;
   const [submitting, setSubmitting] = useState(true);
   const [score,      setScore]      = useState(null);
   const [maxScore,   setMaxScore]   = useState(null);
+  const [reviewQs,   setReviewQs]   = useState([]);
 
   const showAnswers = assessment?.show_answers_after_submit === true;
 
   useEffect(() => {
-    
     if (submissionResult) {
       setScore(submissionResult.autoScore);
       setMaxScore(submissionResult.maxScore);
-      setSubmitting(false);
-      return;
     }
-    
-    let s = 0, ms = 0;
-    questions.forEach(q => {
-      ms += q.points || 1;
-      if (["multiple_choice", "true_false", "fill_blank"].includes(q.type)) {
-        const ans = (answers[q.id] || "").toString().trim().toLowerCase();
-        const cor = (q.correct_answer || "").toString().trim().toLowerCase();
-        if (ans === cor) s += q.points || 1;
-      }
-    });
-    setScore(s);
-    setMaxScore(ms);
-    setSubmitting(false);
+    getAttemptReview(attemptId)
+      .then(setReviewQs)
+      .catch(e => console.error("Failed to load review:", e))
+      .finally(() => setSubmitting(false));
   }, []);
 
-  const hasManual = questions.some(q => ["short_answer", "essay"].includes(q.type));
-  const autoOnly  = questions.filter(q => ["multiple_choice", "true_false", "fill_blank"].includes(q.type));
+  const hasManual = reviewQs.some(q => ["short_answer", "essay"].includes(q.type));
+  const autoOnly  = reviewQs.filter(q => ["multiple_choice", "true_false", "fill_blank"].includes(q.type));
   const pct       = maxScore > 0 ? Math.round(((score ?? 0) / maxScore) * 100) : 0;
   const passed    = pct >= 75;
 
@@ -722,11 +710,7 @@ function ResultsScreen({ assessment, result, studentId, studentName, onDone }) {
           <p style={{ fontSize: 14, color: "#5a7a6e" }}>
             {hasManual
               ? "Some questions require manual grading. Your teacher will review and post your final score soon."
-              : `You answered ${autoOnly.filter(q => {
-                  const ans = (answers[q.id] || "").toString().trim().toLowerCase();
-                  const cor = (q.correct_answer || "").toString().trim().toLowerCase();
-                  return ans === cor;
-                }).length} out of ${autoOnly.length} questions correctly.`
+              : `You answered ${autoOnly.filter(q => q.is_correct).length} out of ${autoOnly.length} questions correctly.`
             }
           </p>
         </div>
@@ -744,13 +728,11 @@ function ResultsScreen({ assessment, result, studentId, studentName, onDone }) {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {questions.map((q, i) => {
+              {reviewQs.map((q, i) => {
                 const isAuto  = ["multiple_choice", "true_false", "fill_blank"].includes(q.type);
-                const ans     = answers[q.id] ?? "";
+                const isRight = q.is_correct === true;
                 const correct = q.correct_answer ?? "";
-                const isRight = isAuto && ans.toString().trim().toLowerCase() === correct.toString().trim().toLowerCase();
-                const displayAns     = q.type === "multiple_choice" ? (q.options || [])[Number(ans)]     ?? "No answer" : ans || "No answer";
-                const displayCorrect = q.type === "multiple_choice" ? (q.options || [])[Number(correct)] ?? correct     : correct;
+                const displayCorrect = q.type === "multiple_choice" ? (q.options || [])[Number(correct)] ?? correct : correct;
                 const borderColor = isAuto ? (isRight ? "#7CA982" : "#e05252") : "#e0a052";
                 const rowIcon = isAuto
                   ? isRight ? <CheckCircle2 size={14} color="#7CA982" /> : <XCircle size={14} color="#e05252" />
@@ -763,7 +745,6 @@ function ResultsScreen({ assessment, result, studentId, studentName, onDone }) {
                       <p style={{ fontSize: 12, fontWeight: 600, color: "#243E36" }}>Q{i + 1}: {q.question}</p>
                     </div>
 
-                    {/* Show correct answer when teacher enabled it — always, whether right or wrong */}
                     {isAuto && showAnswers && (
                     <p style={{ fontSize: 12, color: isRight ? "#7CA982" : "#e05252", paddingLeft: 22, marginTop: 4 }}>
                     {isRight ? "✓ Your answer: " : "Correct: "}

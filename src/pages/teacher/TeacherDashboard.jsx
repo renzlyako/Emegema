@@ -941,6 +941,7 @@ function CreateStudentAccountModal({ courses, onClose, onCreated }) {
   const [error, setError]     = useState("");
   const [showPw, setShowPw]   = useState(false);
   const [success, setSuccess] = useState(null);
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -956,6 +957,7 @@ function CreateStudentAccountModal({ courses, onClose, onCreated }) {
     if (emailError)                         { setError(emailError);                return; }
     if (!form.password || form.password.length < 6) { setError("Password must be at least 6 characters."); return; }
     if (!form.courseId)                     { setError("Please select a course."); return; }
+    if (!consentConfirmed) { setError("Please confirm authorization before creating this account."); return; }
 
     setLoading(true); setError("");
     try {
@@ -964,6 +966,7 @@ function CreateStudentAccountModal({ courses, onClose, onCreated }) {
         password: form.password,
         fullName: form.fullName.trim(),
         courseId: form.courseId,
+        consentConfirmed: true,
       });
       setSuccess(student);
     } catch (e) {
@@ -1092,11 +1095,23 @@ function CreateStudentAccountModal({ courses, onClose, onCreated }) {
             </div>
           </div>
 
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", borderRadius: 10, background: consentConfirmed ? "#e8f3ea" : "#F1F7ED", border: `1.5px solid ${consentConfirmed ? "#c8ddc9" : "#e8f3ea"}`, transition: "all 0.15s" }}>
+            <input
+              type="checkbox"
+              checked={consentConfirmed}
+              onChange={e => setConsentConfirmed(e.target.checked)}
+              style={{ marginTop: 2, accentColor: "#7CA982", width: 16, height: 16, flexShrink: 0, cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 12, color: "#243E36", lineHeight: 1.5 }}>
+              I confirm that I am authorized to create this student account and that any required parent/guardian consent has been obtained.
+            </span>
+          </label>
+
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={loading}
-            style={{ ...s.primaryBtn, width: "100%", justifyContent: "center", opacity: loading ? 0.7 : 1 }}
+            disabled={loading || !consentConfirmed}
+            style={{ ...s.primaryBtn, width: "100%", justifyContent: "center", opacity: (loading || !consentConfirmed) ? 0.5 : 1, cursor: (loading || !consentConfirmed) ? "not-allowed" : "pointer" }}
             className="primary-btn"
           >
             {loading

@@ -816,3 +816,39 @@ export async function applyTemplateToCourse({ templateId, targetCourseId, teache
 
   return newAssessment;
 }
+
+// ─────────────────────────────────────────────
+// SECURE (SERVER-SIDE GRADED) FLOW — bagong version
+// ─────────────────────────────────────────────
+export async function getAttemptQuestionsSecure(attemptId) {
+  const { data, error } = await supabase.rpc("get_attempt_questions", {
+    p_attempt_id: attemptId,
+  });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function submitAssessmentSecure(attemptId, answers) {
+  const { data, error } = await supabase.rpc("submit_assessment_secure", {
+    p_attempt_id: attemptId,
+    p_answers: answers,
+  });
+  if (error) throw new Error(error.message);
+  return data; // { autoScore, maxScore, status }
+}
+
+export async function getAttemptReview(attemptId) {
+  const { data, error } = await supabase.rpc("get_attempt_review", {
+    p_attempt_id: attemptId,
+  });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function getAssessmentPreviewStats(assessmentId) {
+  const { data, error } = await supabase.rpc("get_assessment_preview_questions", {
+    p_assessment_id: assessmentId,
+  });
+  if (error) throw new Error(error.message);
+  return data; // { count, types }
+}

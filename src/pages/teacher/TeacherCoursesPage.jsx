@@ -356,18 +356,18 @@ export default function TeacherCoursesPage({ onAssessmentChanged }) {
 
   const [confirmModal, setConfirmModal] = useState(null);
 
+  const [deleteCourseTarget, setDeleteCourseTarget] = useState(null);
+
   const handleDelete = (courseId) => {
-    setConfirmModal({
-      title: "Delete Course",
-      message: "Are you sure you want to delete this course? This cannot be undone.",
-      confirmLabel: "Delete Course",
-      onConfirm: async () => {
-        try {
-          await deleteCourse(courseId);
-          setCourses(prev => prev.filter(c => c.id !== courseId));
-        } catch (e) { alert(e.message); }
-      },
-    });
+    setDeleteCourseTarget(courseId);
+  };
+
+  const confirmDeleteCourse = async () => {
+    try {
+      await deleteCourse(deleteCourseTarget);
+      setCourses(prev => prev.filter(c => c.id !== deleteCourseTarget));
+      setDeleteCourseTarget(null);
+    } catch (e) { alert(e.message); }
   };
 
 if (activeCourse) {
@@ -484,6 +484,13 @@ if (activeCourse) {
           confirmLabel={confirmModal.confirmLabel}
           onConfirm={confirmModal.onConfirm}
           onClose={() => setConfirmModal(null)}
+        />
+      )}
+
+      {deleteCourseTarget && (
+        <DeleteCourseModal
+          onConfirm={confirmDeleteCourse}
+          onClose={() => setDeleteCourseTarget(null)}
         />
       )}
 
@@ -1254,6 +1261,7 @@ function CreateStudentAccountModal({ courseId, onClose, onCreated }) {
   const [error, setError]     = useState("");
   const [showPw, setShowPw]   = useState(false);
   const [success, setSuccess] = useState(null);
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -1268,6 +1276,7 @@ function CreateStudentAccountModal({ courseId, onClose, onCreated }) {
     const emailError = validateStudentEmail(form.email);
     if (emailError)                         { setError(emailError);                return; }
     if (!form.password || form.password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (!consentConfirmed) { setError("Please confirm authorization before creating this account."); return; }
 
     setLoading(true); setError("");
     try {
@@ -1276,6 +1285,7 @@ function CreateStudentAccountModal({ courseId, onClose, onCreated }) {
         password: form.password,
         fullName: form.fullName.trim(),
         courseId,
+        consentConfirmed: true,
       });
       setSuccess(student);
     } catch (e) {
@@ -1369,11 +1379,23 @@ function CreateStudentAccountModal({ courseId, onClose, onCreated }) {
             </div>
           </div>
 
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", borderRadius: 10, background: consentConfirmed ? "#e8f3ea" : "#F1F7ED", border: `1.5px solid ${consentConfirmed ? "#c8ddc9" : "#e8f3ea"}`, transition: "all 0.15s" }}>
+            <input
+              type="checkbox"
+              checked={consentConfirmed}
+              onChange={e => setConsentConfirmed(e.target.checked)}
+              style={{ marginTop: 2, accentColor: "#7CA982", width: 16, height: 16, flexShrink: 0, cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 12, color: "#243E36", lineHeight: 1.5 }}>
+              I confirm that I am authorized to create this student account and that any required parent/guardian consent has been obtained.
+            </span>
+          </label>
+
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={loading}
-            style={{ ...s.primaryBtn, width: "100%", justifyContent: "center", opacity: loading ? 0.7 : 1 }}
+            disabled={loading || !consentConfirmed}
+            style={{ ...s.primaryBtn, width: "100%", justifyContent: "center", opacity: (loading || !consentConfirmed) ? 0.5 : 1, cursor: (loading || !consentConfirmed) ? "not-allowed" : "pointer" }}
             className="primary-btn"
           >
             {loading
@@ -1425,6 +1447,77 @@ function ArchivedCoursesModal({ courses, loading, onClose, onUnarchive }) {
               ))}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  , document.body);
+}
+
+// ─────────────────────────────────────────────
+// MODAL: DELETE COURSE (with confirmation checkbox)
+// ─────────────────────────────────────────────
+function DeleteCourseModal({ onConfirm, onClose }) {
+  const [checked, setChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return createPortal(
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 999999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+      onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 460, boxShadow: "0 24px 64px rgba(0,0,0,0.2)", padding: "28px 28px 24px", fontFamily: "'DM Sans', sans-serif" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fce8e8", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+          <AlertCircle size={22} color="#e05252" />
+        </div>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 800, color: "#243E36", marginBottom: 10 }}>Delete Course</h2>
+        <p style={{ fontSize: 13, color: "#5a7a6e", lineHeight: 1.6, marginBottom: 8 }}>
+          Deleting this course will permanently remove this course and the records associated with it, including student enrollments, submissions, assessment results, grades, and attendance for this course only.
+        </p>
+        <p style={{ fontSize: 13, color: "#5a7a6e", lineHeight: 1.6, marginBottom: 8 }}>
+          This will not delete the students' Emegema accounts or their records in other courses.
+        </p>
+        <p style={{ fontSize: 13, fontWeight: 700, color: "#8b2020", lineHeight: 1.6, marginBottom: 18 }}>
+          This action cannot be undone.
+        </p>
+
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", borderRadius: 10, background: checked ? "#fce8e8" : "#F1F7ED", border: `1.5px solid ${checked ? "#f0b8b8" : "#e8f3ea"}`, marginBottom: 20, transition: "all 0.15s" }}>
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={e => setChecked(e.target.checked)}
+            style={{ marginTop: 2, accentColor: "#e05252", width: 16, height: 16, flexShrink: 0, cursor: "pointer" }}
+          />
+          <span style={{ fontSize: 13, color: "#243E36", lineHeight: 1.5 }}>
+            I understand that the records associated with this course will be permanently deleted.
+          </span>
+        </label>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: "11px 0", border: "1.5px solid #e8f3ea", borderRadius: 9, background: "#fff", color: "#5a7a6e", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+            className="cancel-btn">
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!checked || deleting}
+            style={{ flex: 1, padding: "11px 0", border: "none", borderRadius: 9, background: "#e05252", color: "#fff", fontSize: 14, fontWeight: 600, cursor: (!checked || deleting) ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif", opacity: (!checked || deleting) ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            className="confirm-btn">
+            {deleting ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Deleting…</> : "Delete Course"}
+          </button>
         </div>
       </div>
     </div>
