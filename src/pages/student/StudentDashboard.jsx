@@ -510,6 +510,36 @@ export default function StudentDashboard() {
   }, [fetchProfile, fetchCourses, fetchAssignments, fetchGrades,
       fetchAnnouncements, fetchNotifications, fetchAssessments]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`student-dashboard-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assessments" },
+        () => { fetchAssessments(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assignments" },
+        () => { fetchAssignments(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assessment_submissions", filter: `student_id=eq.${user.id}` },
+        (payload) => { console.log("REALTIME EVENT (submissions):", payload); fetchAssessments(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => { fetchNotifications(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, fetchAssessments, fetchAssignments, fetchNotifications]);
+
   const pendingAssignments  = assignments.filter(a => !a.submission);
   const pendingAssessments  = assessments.filter(a => !a.submission);
   const unreadNotifCount    = notifications.filter(n => !n.is_read).length;
@@ -591,7 +621,12 @@ const markAnnouncementsAsRead = useCallback(async () => {
       <StudentAssessmentTaker
         assessment={takingAssessment}
         onBack={() => setTakingAssessment(null)}
-        onDone={() => { setTakingAssessment(null); fetchAssessments(); setActivePage("assessments"); }}
+        onDone={() => {
+          setTakingAssessment(null);
+          fetchAssessments();
+          fetchNotifications();
+          setActivePage("assessments");
+        }}
       />
     );
   }
@@ -1132,12 +1167,12 @@ function AssessmentCard({ assessment: a, onTake }) {
   const isQuiz   = a.type === "quiz";
 
   return (
-    <div style={{ ...s.card, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, borderLeft: `4px solid ${done ? "#7CA982" : isUrgent(a.due_date) ? "#e05252" : "#243E36"}` }}>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: done ? "#e8f3ea" : isQuiz ? "#e8eef9" : "#f3eefb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+    <div style={{ ...s.card, padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, borderLeft: `4px solid ${done ? "#7CA982" : isUrgent(a.due_date) ? "#e05252" : "#243E36"}` }} className="assessment-card">
+      <div style={{ width: 44, height: 44, borderRadius: 12, background: done ? "#e8f3ea" : isQuiz ? "#e8eef9" : "#f3eefb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }} className="assessment-card-icon">
         {done ? <CheckSquare size={20} color="#7CA982" /> : isQuiz ? <ClipboardList size={20} color="#3a6fd8" /> : <FileText size={20} color="#8b6ce0" />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: "#243E36" }}>{a.title}</p>
           <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: isQuiz ? "#e8eef9" : "#f3eefb", color: isQuiz ? "#3a6fd8" : "#8b6ce0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             {isQuiz ? "Quiz" : "Written"}
@@ -1158,13 +1193,13 @@ function AssessmentCard({ assessment: a, onTake }) {
         </div>
       </div>
       {done ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#e8f3ea", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#1a5c30", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#e8f3ea", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#1a5c30", flexShrink: 0 }} className="assessment-card-status">
           <CheckCircle2 size={14} /> Submitted
         </div>
       ) : (
         <button onClick={() => onTake(a)}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", background: "#243E36", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", flexShrink: 0, transition: "background 0.2s" }}
-          className="take-btn">
+          className="take-btn assessment-card-status">
           <Play size={14} /> Take
         </button>
       )}
@@ -1659,6 +1694,21 @@ const css = `
     }
     .table-scroll table {
       min-width: 480px;
+    }
+
+    /* Assessment card: stack icon/content/status vertically instead of
+       squeezing them into one row that overflows on narrow screens */
+    .assessment-card {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    .assessment-card-icon {
+      width: 36px !important;
+      height: 36px !important;
+    }
+    .assessment-card-status {
+      width: 100%;
+      justify-content: center;
     }
   }
   @media (max-width: 480px) {

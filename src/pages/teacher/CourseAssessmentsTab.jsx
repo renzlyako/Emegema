@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, X, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, Send, Clock, Award, FileText, CheckSquare, AlignLeft, Edit3, BookOpen, AlertCircle, Loader2, RefreshCw, CheckCircle2, Lock, Unlock, MoreVertical, ArrowUp, ArrowDown, Copy, Users, Star, Shuffle, Database, Settings2, ToggleLeft, ToggleRight, Info, Download, } from "lucide-react";
-import { getCourseAssessments, createAssessment, updateAssessment, publishAssessment, closeAssessment, deleteAssessment, saveQuestions, getAssessmentWithQuestions, getAssessmentSubmissions, gradeSubmission, saveAssessmentAsTemplate, getTeacherTemplates, deleteAssessmentTemplate, applyTemplateToCourse, toggleExamAccess, generateExamAccessCode, } from "../../services/assessmentService";
+import { getCourseAssessments, createAssessment, updateAssessment, publishAssessment, closeAssessment, deleteAssessment, saveQuestions, getAssessmentWithQuestions, getAssessmentSubmissions, gradeSubmission, saveAssessmentAsTemplate, getTeacherTemplates, deleteAssessmentTemplate, applyTemplateToCourse, toggleExamAccess, generateExamAccessCode, teacherResetAttempt, } from "../../services/assessmentService";
 import { getCourseTerms } from "../../services/courseService";
 import { exportSingleStudentDocx, exportAllStudentsDocx } from "../../services/exportService";
 import { createPortal } from "react-dom";
@@ -205,14 +205,14 @@ export default function CourseAssessmentsTab({ course, teacherId, onAssessmentCh
       <style>{css}</style>
 
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div className="assess-list-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12 }}>
         <div>
           <h3 style={{ fontSize: 15, fontWeight: 700, color: "#243E36" }}>
             {loading ? "Assessments" : `${assessments.length} Assessment${assessments.length !== 1 ? "s" : ""}`}
           </h3>
           <p style={{ fontSize: 12, color: "#9ab5a0", marginTop: 2 }}>Quizzes and written assessments for this course</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="assess-list-header-actions" style={{ display: "flex", gap: 10 }}>
           <button style={s.secondaryBtn} onClick={() => setShowDuplicate(true)} className="secondary-btn">
             <Copy size={14} /> Use Template
           </button>
@@ -578,8 +578,8 @@ function AssessmentCard({ assessment: a, onEdit, onPublish, onClose, onDelete, o
   const answersHidden = !a.show_answers_after_submit;
 
   return (
-    <div style={s.assessCard}>
-      <div style={{ ...s.assessAccent, background: a.type === "quiz" ? "#243E36" : "#8b6ce0" }} />
+    <div style={s.assessCard} className="assess-card">
+      <div style={{ ...s.assessAccent, background: a.type === "quiz" ? "#243E36" : "#8b6ce0" }} className="assess-accent" />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
@@ -667,7 +667,7 @@ function AssessmentCard({ assessment: a, onEdit, onPublish, onClose, onDelete, o
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }} className="assess-card-actions">
         <button style={s.primaryBtn} onClick={onEdit} className="primary-btn">
           <Edit3 size={13} /> Questions
         </button>
@@ -1603,6 +1603,23 @@ function SubmissionsView({ assessment, onBack, onGraded }) {
   const [saving,        setSaving]        = useState(false);
   const [viewingSubmission, setViewingSubmission] = useState(null);
   const [exportingAll,  setExportingAll]  = useState(false);
+  const [confirmReset,  setConfirmReset]  = useState(null); 
+  const [resetting,     setResetting]     = useState(false);
+
+  const handleConfirmReset = async () => {
+    if (!confirmReset) return;
+    setResetting(true);
+    try {
+      await teacherResetAttempt(confirmReset.id);
+      setSubmissions(prev => prev.filter(s => s.id !== confirmReset.id));
+      setConfirmReset(null);
+      onGraded(); 
+    } catch (e) {
+      alert("Failed to reset: " + e.message);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const handleExportAll = async () => {
     setExportingAll(true);
@@ -1717,6 +1734,14 @@ const manualScoresValid = manualQuestions.every(q => {
                   <button style={s.secondaryBtn} className="secondary-btn"
   onClick={() => setViewingSubmission(sub)}>
   <Eye size={13} /> View Answers
+</button>
+<button
+  style={{ ...s.secondaryBtn, color: "#b26b00", borderColor: "#f0cf9d", background: "#fff8e1" }}
+  className="secondary-btn"
+  onClick={() => setConfirmReset(sub)}
+  title="Delete this submission and attempt so the student can retake it"
+>
+  <RefreshCw size={13} /> Retake
 </button>
 <button style={s.primaryBtn} className="primary-btn"
   onClick={() => {
@@ -1869,6 +1894,17 @@ const manualScoresValid = manualQuestions.every(q => {
     }}
   />
 )}
+
+      {confirmReset && (
+        <ConfirmModal
+          title="Allow Retake?"
+          message={`This will delete ${confirmReset.studentName}'s submission and answers for "${assessment?.title}". They will be able to take it again from the start. Their current score will be permanently lost. Are you sure?`}
+          confirmLabel={resetting ? "Processing…" : "Yes, allow retake"}
+          danger={true}
+          onConfirm={handleConfirmReset}
+          onClose={() => !resetting && setConfirmReset(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2381,6 +2417,39 @@ const css = `
     .q-header-badges {
       flex-wrap: wrap;
       row-gap: 4px;
+    }
+
+    /* "Use Template" / "New Assessment": stack sa ibabaw ng listahan
+       sa halip na sumiksik at magdulot ng horizontal scroll */
+    .assess-list-header {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    .assess-list-header-actions button {
+      flex: 1;
+      justify-content: center;
+    }
+
+    /* Assessment card: ilipat ang action buttons (Questions, Submissions,
+       Exam Access) sa ibaba bilang full-width row, hindi katabi ng content */
+    .assess-card {
+      flex-direction: column;
+    }
+    .assess-accent {
+      width: 100% !important;
+      height: 4px !important;
+      min-height: 0 !important;
+      align-self: auto !important;
+    }
+    .assess-card-actions {
+      flex-direction: row !important;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .assess-card-actions button {
+      flex: 1;
+      justify-content: center;
+      min-width: 120px;
     }
   }
 `;

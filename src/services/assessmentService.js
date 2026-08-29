@@ -852,3 +852,13 @@ export async function getAssessmentPreviewStats(assessmentId) {
   if (error) throw new Error(error.message);
   return data; // { count, types }
 }
+
+// ─────────────────────────────────────────────
+// TEACHER: RESET/RETAKE A SUBMISSION
+// ─────────────────────────────────────────────
+export async function teacherResetAttempt(submissionId) {
+  const { error } = await supabase.rpc("teacher_reset_attempt", {
+    p_submission_id: submissionId,
+  });
+  if (error) throw new Error(error.message);
+}

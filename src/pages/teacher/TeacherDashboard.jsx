@@ -2367,7 +2367,7 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
                       style={{ accentColor: "#3b5bdb" }}
                     />
                     <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
-                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.total_points ?? 100}pts</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.max_points ?? 100}pts</span>
                   </label>
                   );
                 })}
@@ -2393,7 +2393,7 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
                       style={{ accentColor: "#c0532a" }}
                     />
                     <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
-                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.total_points ?? 100}pts</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.max_points ?? 100}pts</span>
                   </label>
                   );
                 })}
@@ -2419,7 +2419,7 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
                       style={{ accentColor: "#4a7c59" }}
                     />
                     <span style={{ fontSize: 13, color: "#243E36", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
-                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.total_points ?? 100}pts</span>
+                    <span style={{ fontSize: 11, color: "#9ab5a0", marginLeft: "auto", flexShrink: 0 }}>{a.max_points ?? 100}pts</span>
                   </label>
                   );
                 })}

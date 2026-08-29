@@ -32,7 +32,7 @@ export default function StudentAssessmentTaker({ assessment, onBack, onDone }) {
   };
 
   if (phase === "pre") return <PreScreen assessment={assessment} onStart={handleStart} onBack={onBack} />;
-  if (phase === "taking") return <TakingScreen assessment={liveAssessment} studentId={user?.id} onSubmit={handleSubmit} />;
+  if (phase === "taking") return <TakingScreen assessment={liveAssessment} studentId={user?.id} onSubmit={handleSubmit} onBack={onBack} />;
   if (phase === "results") return <ResultsScreen assessment={liveAssessment} result={result} studentId={user?.id} studentName={profile?.full_name ?? "Student"} onDone={onDone} />;
   return null;
 }
@@ -254,10 +254,12 @@ function PreScreen({ assessment, onStart, onBack }) {
 // ─────────────────────────────────────────────
 // PHASE 2: TAKING SCREEN
 // ─────────────────────────────────────────────
-function TakingScreen({ assessment, studentId, onSubmit }) {
+function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
   const timerMode = getTimerMode(assessment);
   const [questions,       setQuestions]       = useState([]);
   const [loading,         setLoading]         = useState(true);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [loadError,       setLoadError]       = useState(null);
   const [currentIdx,      setCurrentIdx]      = useState(0);
   const [answers,         setAnswers]         = useState({});
   const [timeLeft,        setTimeLeft]        = useState(null);
@@ -321,6 +323,11 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
   useEffect(() => {
     getOrCreateAttempt(assessment.id, studentId)
       .then(async (attempt) => {
+        if (attempt.status === "submitted") {
+          setAlreadySubmitted(true);
+          setLoading(false);
+          return;
+        }
         const qs = await getAttemptQuestionsSecure(attempt.id);
         setQuestions(qs);
         questionsRef.current = qs;
@@ -347,7 +354,14 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
           saveAttemptProgress(attemptIdRef.current, answersRef.current, currentIdxRef.current);
         }, 20000);
       })
-      .catch(e => { console.error("Failed to load questions:", e); setLoading(false); });
+      .catch(e => {
+        console.error("Failed to load questions:", e);
+        const friendly = e.message?.includes("duplicate key")
+          ? "There was a technical issue loading the exam. Please try again — click 'Go Back' then take the assessment again."
+          : e.message;
+        setLoadError(friendly);
+        setLoading(false);
+      });
 
     const handleFsChange = () => {
       if (!document.fullscreenElement && !submittedRef.current) { setViolated(true); autoSubmit("violation"); }
@@ -452,6 +466,30 @@ function TakingScreen({ assessment, studentId, onSubmit }) {
     if (timerMode === "per_question" && lockedQuestions.has(currentIdx - 1)) return;
     setCurrentIdx(prev => prev - 1);
   };
+
+  if (alreadySubmitted) return (
+    <div style={ts.loadingScreen}>
+      <CheckCircle2 size={40} color="#7CA982" />
+      <p style={{ color: "#F1F7ED", marginTop: 16, fontSize: 15, textAlign: "center", maxWidth: 320 }}>
+        You've already submitted this assessment.
+      </p>
+      <button onClick={onBack} style={{ marginTop: 20, padding: "10px 24px", borderRadius: 10, border: "none", background: "#7CA982", color: "#243E36", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+        Go Back
+      </button>
+    </div>
+  );
+
+  if (loadError) return (
+    <div style={ts.loadingScreen}>
+      <AlertTriangle size={40} color="#e05252" />
+      <p style={{ color: "#F1F7ED", marginTop: 16, fontSize: 15, textAlign: "center", maxWidth: 320 }}>
+        {loadError}
+      </p>
+      <button onClick={onBack} style={{ marginTop: 20, padding: "10px 24px", borderRadius: 10, border: "none", background: "#7CA982", color: "#243E36", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+        Go Back
+      </button>
+    </div>
+  );
 
   if (loading) return (
     <div style={ts.loadingScreen}>
