@@ -595,7 +595,6 @@ export async function getOrCreateAttempt(assessmentId, studentId) {
     .select("*")
     .eq("assessment_id", assessmentId)
     .eq("student_id", studentId)
-    .eq("status", "in_progress")
     .maybeSingle();
 
   if (fetchErr) throw new Error(fetchErr.message);
@@ -607,7 +606,19 @@ export async function getOrCreateAttempt(assessmentId, studentId) {
     .select()
     .single();
 
-  if (createErr) throw new Error(createErr.message);
+  if (createErr) {
+    if (createErr.code === "23505") { 
+      const { data: retryExisting, error: retryErr } = await supabase
+        .from("assessment_attempts")
+        .select("*")
+        .eq("assessment_id", assessmentId)
+        .eq("student_id", studentId)
+        .maybeSingle();
+      if (retryErr) throw new Error(retryErr.message);
+      if (retryExisting) return retryExisting;
+    }
+    throw new Error(createErr.message);
+  }
   return created;
 }
 

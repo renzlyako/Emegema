@@ -20,9 +20,12 @@ import { useAuthStore } from "./store/authStore";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 
 function RootRedirect() {
-  const { user, profile, loading } = useAuthStore();
+  const { user, profile, loading, isRecovering } = useAuthStore();
 
   if (loading) return null;
+
+
+  if (isRecovering) return <Navigate to="/reset-password" replace />;
 
   if (user && profile) {
     const redirect = {

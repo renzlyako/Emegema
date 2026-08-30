@@ -6,6 +6,7 @@ import { getCourseAssessments, createAssessment, updateAssessment, publishAssess
 import { getCourseTerms } from "../../services/courseService";
 import { exportSingleStudentDocx, exportAllStudentsDocx } from "../../services/exportService";
 import { createPortal } from "react-dom";
+import { supabase } from "../../services/supabase";
 
 // ─────────────────────────────────────────────
 // CONSTANTS
@@ -99,6 +100,19 @@ export default function CourseAssessmentsTab({ course, teacherId, onAssessmentCh
   }, [course.id]);
 
   useEffect(() => { fetchAssessments(); }, [fetchAssessments]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`course-assessments-list-${course.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assessment_submissions" },
+        () => { fetchAssessments(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [course.id, fetchAssessments]);
 
   useEffect(() => {
     getCourseTerms(course.id)
@@ -1629,7 +1643,7 @@ function SubmissionsView({ assessment, onBack, onGraded }) {
     finally { setExportingAll(false); }
   };
 
-  useEffect(() => {
+  const loadSubmissions = useCallback(() => {
     Promise.all([
       getAssessmentSubmissions(assessment.id),
       getAssessmentWithQuestions(assessment.id),
@@ -1639,6 +1653,21 @@ function SubmissionsView({ assessment, onBack, onGraded }) {
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [assessment.id]);
+
+  useEffect(() => { loadSubmissions(); }, [loadSubmissions]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`assessment-submissions-${assessment.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assessment_submissions", filter: `assessment_id=eq.${assessment.id}` },
+        () => { loadSubmissions(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [assessment.id, loadSubmissions]);
 
 const manualQuestions    = questions.filter(q => ["short_answer", "essay"].includes(q.type));
 const manualTotal        = manualQuestions.reduce((sum, q) => sum + (Number(manualScores[q.id]) || 0), 0);

@@ -467,6 +467,21 @@ export default function TeacherDashboard() {
       fetchAssignments, fetchStudents, fetchGradebook, fetchAnnouncementsData,
       fetchNotifications]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`teacher-dashboard-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => { fetchNotifications(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, fetchNotifications]);
+
   const handleBellClick = () => {
     setNotifOpen(v => !v);
     if (!notifOpen) fetchNotifications();

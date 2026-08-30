@@ -160,7 +160,7 @@ function PreScreen({ assessment, onStart, onBack }) {
               timerMode === "per_question" && { icon: <Clock size={13} />, text: "Each question has its own countdown timer, when it reaches 0, it auto-advances and cannot be revisited", color: "#e0a052" },
               timerMode === "overall" && { icon: <Clock size={13} />, text: "A single countdown runs for the whole assessment, when it reaches 0, your answers are auto-submitted", color: "#e0a052" },
               timerMode !== "none" && { icon: <ChevronLeft size={13} />, text: "Once you move to the next question, you cannot go back to it", color: "#e05252" },
-              { icon: <CheckCircle2 size={13} />,  text: hasManual ? "Some questions require manual grading by your teacher" : "All questions are auto-graded — you'll see your score immediately", color: "#7CA982" },
+              { icon: <CheckCircle2 size={13} />,  text: hasManual ? "This assessment includes short answer or essay questions, which your teacher will grade manually, your final score will be released after review" : "This assessment is fully auto-graded, you'll see your score immediately after submitting", color: "#7CA982" },
             ].filter(Boolean).map((r, i) => (
               <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <span style={{ color: r.color, marginTop: 1, flexShrink: 0 }}>{r.icon}</span>
@@ -357,7 +357,7 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
       .catch(e => {
         console.error("Failed to load questions:", e);
         const friendly = e.message?.includes("duplicate key")
-          ? "There was a technical issue loading the exam. Please try again — click 'Go Back' then take the assessment again."
+          ? "There was a technical issue loading the exam. Please try again and click 'Go Back' then take the assessment again."
           : e.message;
         setLoadError(friendly);
         setLoading(false);
@@ -461,12 +461,6 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
     }
   };
 
-  const handlePrev = () => {
-    if (currentIdx === 0) return;
-    if (timerMode === "per_question" && lockedQuestions.has(currentIdx - 1)) return;
-    setCurrentIdx(prev => prev - 1);
-  };
-
   if (alreadySubmitted) return (
     <div style={ts.loadingScreen}>
       <CheckCircle2 size={40} color="#7CA982" />
@@ -511,7 +505,6 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
   const progress    = (currentIdx / questions.length) * 100;
   const isUrgent    = timeLeft !== null && timeLeft <= 10;
   const isLastQ     = currentIdx === questions.length - 1;
-  const isPrevLocked = currentIdx === 0 || lockedQuestions.has(currentIdx - 1);
 
   return (
     <div ref={containerRef} style={ts.root}>
@@ -578,15 +571,7 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
             {q.type === "essay"           && <EssayInput        value={answers[q.id] ?? ""} onChange={val => handleAnswer(q.id, val)} />}
           </div>
 
-          <div style={ts.navRow}>
-            <button
-              style={{ ...ts.navBtn, opacity: isPrevLocked ? 0.3 : 1, cursor: isPrevLocked ? "not-allowed" : "pointer" }}
-              onClick={handlePrev}
-              disabled={isPrevLocked}
-              className="nav-btn"
-            >
-              <ChevronLeft size={16} /> Previous
-            </button>
+          <div style={{ ...ts.navRow, justifyContent: "flex-end" }}>
             <button
               style={{ ...ts.nextBtn, background: isLastQ ? "#e05252" : "#243E36" }}
               onClick={handleNext}
@@ -736,21 +721,39 @@ function ResultsScreen({ assessment, result, studentId, studentName, onDone }) {
         )}
 
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ ...rs.scoreCircle, borderColor: passed ? "#7CA982" : "#e05252" }}>
-            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, fontWeight: 800, color: passed ? "#7CA982" : "#e05252", lineHeight: 1 }}>
-              {hasManual && autoOnly.length === 0 ? "—" : `${pct}%`}
-            </p>
-            {!hasManual && <p style={{ fontSize: 13, color: "#9ab5a0", marginTop: 4 }}>{score}/{maxScore} pts</p>}
-          </div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 800, color: grade.color, marginTop: 16, marginBottom: 4 }}>
-            {hasManual && autoOnly.length === 0 ? "Submitted!" : grade.label}
-          </h2>
-          <p style={{ fontSize: 14, color: "#5a7a6e" }}>
-            {hasManual
-              ? "Some questions require manual grading. Your teacher will review and post your final score soon."
-              : `You answered ${autoOnly.filter(q => q.is_correct).length} out of ${autoOnly.length} questions correctly.`
-            }
-          </p>
+          {hasManual ? (
+            <>
+              <div style={{ ...rs.scoreCircle, borderColor: "#e0a052" }}>
+                <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 40, fontWeight: 800, color: "#e0a052", lineHeight: 1 }}>
+                  {autoOnly.length > 0 ? `${score}/${maxScore}` : "—"}
+                </p>
+                <p style={{ fontSize: 12, color: "#9ab5a0", marginTop: 4 }}>
+                  {autoOnly.length > 0 ? "auto-graded pts" : "pts"}
+                </p>
+              </div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 800, color: "#e0a052", marginTop: 16, marginBottom: 4 }}>
+                Submitted!
+              </h2>
+              <p style={{ fontSize: 14, color: "#5a7a6e" }}>
+                This assessment includes short answer or essay questions. The score above is only from the auto-graded part, your <strong>final score</strong> will be released after your teacher reviews the rest.
+              </p>
+            </>
+          ) : (
+            <>
+              <div style={{ ...rs.scoreCircle, borderColor: passed ? "#7CA982" : "#e05252" }}>
+                <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 40, fontWeight: 800, color: passed ? "#7CA982" : "#e05252", lineHeight: 1 }}>
+                  {score}/{maxScore}
+                </p>
+                <p style={{ fontSize: 12, color: "#9ab5a0", marginTop: 4 }}>{pct}%</p>
+              </div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 800, color: grade.color, marginTop: 16, marginBottom: 4 }}>
+                {grade.label}
+              </h2>
+              <p style={{ fontSize: 14, color: "#5a7a6e" }}>
+                You answered {autoOnly.filter(q => q.is_correct).length} out of {autoOnly.length} questions correctly.
+              </p>
+            </>
+          )}
         </div>
 
         {autoOnly.length > 0 && (

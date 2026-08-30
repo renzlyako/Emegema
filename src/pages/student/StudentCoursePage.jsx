@@ -499,6 +499,24 @@ const fetchGrades = useCallback(async () => {
     getCourseTerms(course.id).then(setTerms).catch(() => {});
   }, [fetchAnnouncements, fetchAssignments, fetchAssessments, fetchGrades, fetchStats]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel(`student-course-${course.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assignments", filter: `course_id=eq.${course.id}` },
+        () => { fetchAssignments(); fetchStats(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assessments", filter: `course_id=eq.${course.id}` },
+        () => { fetchAssessments(); fetchStats(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [course.id, fetchAssignments, fetchAssessments, fetchStats]);
+
   if (projectAssignment) {
     return (
       <ProjectSubmitModal
@@ -598,11 +616,11 @@ const fetchGrades = useCallback(async () => {
           {course.schedule && <p style={s.heroSchedule}>🗓 {course.schedule}</p>}
         </div>
         <div style={s.heroStats}>
-          <div style={s.heroStat}><p style={s.heroStatNum}>{courseStats?.students ?? "…"}</p><p style={s.heroStatLabel}>Students</p></div>
+          <div style={s.heroStat}><p style={s.heroStatNum}>{courseStats?.students ?? "…"}</p><p style={s.heroStatLabel}>Classmates</p></div>
           <div style={s.heroStatDivider} />
           <div style={s.heroStat}><p style={s.heroStatNum}>{courseStats?.assignments ?? "…"}</p><p style={s.heroStatLabel}>Assignments</p></div>
           <div style={s.heroStatDivider} />
-          <div style={s.heroStat}><p style={s.heroStatNum}>{avgGrade !== null ? `${avgGrade}%` : "—"}</p><p style={s.heroStatLabel}>Your Avg.</p></div>
+          <div style={s.heroStat}><p style={s.heroStatNum}>{courseStats?.assessments ?? "…"}</p><p style={s.heroStatLabel}>Assessments</p></div>
         </div>
       </div>
 
@@ -667,7 +685,7 @@ function OverviewTab({ course, courseStats, announcements, assignments, assessme
           { label: "Classmates",      value: courseStats?.students   ?? "…", icon: <Users size={18} />,        color: "#243E36" },
           { label: "Assignments",     value: courseStats?.assignments ?? "…", icon: <FileText size={18} />,     color: "#7CA982" },
           { label: "Assessments",     value: courseStats?.assessments ?? "…", icon: <ClipboardList size={18} />,color: "#4a7c59" },
-          { label: "Your Avg. Grade", value: avgGrade !== null ? `${avgGrade}%` : "—", icon: <TrendingUp size={18} />, color: "#e0a052" },
+          { label: "Completed",       value: assignments.filter(a => !!a.submission).length + assessments.filter(a => !!a.submission).length, icon: <CheckCircle2 size={18} />, color: "#e0a052" },
         ].map((st, i) => (
           <div key={i} style={s.statCard} className="stat-card">
             <div style={{ ...s.statIcon, background: st.color + "18", color: st.color }}>{st.icon}</div>
@@ -898,7 +916,16 @@ function AssignmentsTab({ assignments = [], loading, errors = {}, onRetry = {}, 
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#1a5c30" }}>Grade: {a.submission.grade}/{a.maxPoints}</span>
                     )}
                     {status === "graded" && a.submission?.feedback && (
-                      <span style={{ fontSize: 11, color: "#7CA982" }}>"{a.submission.feedback}"</span>
+                      <div style={{ flexBasis: "100%" }}>
+                        <span style={{ fontSize: 11, color: "#7CA982" }}>
+                          "{a.submission.feedback.length > 100 ? a.submission.feedback.slice(0, 100) + "…" : a.submission.feedback}"
+                        </span>
+                        {a.submission.feedback.length > 100 && (
+                          <p style={{ fontSize: 10, color: "#9ab5a0", fontStyle: "italic", marginTop: 2 }}>
+                            Click "View & Feedback" to see the full feedback
+                          </p>
+                        )}
+                      </div>
                     )}
                     {isEssay && status === "submitted" && a.submission?.essay_answer && (
                       <span style={{ fontSize: 11, color: "#4a7c59", fontWeight: 600 }}>
@@ -1020,33 +1047,35 @@ function AssessmentsTab({ assessments, loading, errors, onRetry, onTake, color, 
             const pct      = maxScore > 0 && score != null ? Math.round((score / maxScore) * 100) : null;
             const isQuiz   = a.type === "quiz";
             return (
-              <div key={a.id} style={{ background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "18px 20px", display: "flex", gap: 16, alignItems: "center", borderLeft: `4px solid ${done ? "#7CA982" : isUrgent(a.due_date) ? "#e05252" : color}` }}>
+              <div key={a.id} className="assignment-card" style={{ background: "#fff", border: "1px solid #e8f3ea", borderRadius: 12, padding: "18px 20px", display: "flex", gap: 16, alignItems: "center", borderLeft: `4px solid ${done ? "#7CA982" : isUrgent(a.due_date) ? "#e05252" : color}` }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: done ? "#e8f3ea" : isQuiz ? "#e8eef9" : "#f3eefb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   {done ? <CheckSquare size={18} color="#7CA982" /> : isQuiz ? <ClipboardList size={18} color="#3a6fd8" /> : <FileText size={18} color="#8b6ce0" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: "#243E36" }}>{a.title}</p>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: isQuiz ? "#e8eef9" : "#f3eefb", color: isQuiz ? "#3a6fd8" : "#8b6ce0", textTransform: "uppercase" }}>
                       {isQuiz ? "Quiz" : "Written"}
                     </span>
                   </div>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <div className="assignment-meta" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 11, color: "#9ab5a0", display: "flex", alignItems: "center", gap: 4 }}><Clock size={11} /> Due {formatDueDate(a.due_date)}</span>
                     <span style={{ fontSize: 11, color: "#9ab5a0" }}>{a.max_points} pts</span>
                     {done && isGraded && pct !== null && <span style={{ fontSize: 11, fontWeight: 700, color: pct >= 75 ? "#1a5c30" : "#8b2020" }}>Score: {score}/{maxScore} ({pct}%)</span>}
                     {done && !isGraded && <span style={{ fontSize: 11, color: "#e0a052", fontWeight: 600 }}>Pending review</span>}
                   </div>
                 </div>
+                <div className="assignment-action" style={{ flexShrink: 0 }}>
                 {done ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#e8f3ea", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#1a5c30", flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#e8f3ea", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#1a5c30" }}>
                     <CheckCircle2 size={13} /> Done
                   </div>
                 ) : (
-                  <button onClick={() => onTake(a)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", background: color, color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }} className="take-btn">
+                  <button onClick={() => onTake(a)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", background: color, color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }} className="take-btn">
                     <Play size={13} /> Take
                   </button>
                 )}
+                </div>
               </div>
             );
           })}
@@ -2152,6 +2181,8 @@ const css = `
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
     }
     .tab-bar::-webkit-scrollbar {
       display: none;

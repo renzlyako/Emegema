@@ -3,11 +3,19 @@ import { create } from "zustand";
 import { supabase } from "../services/supabase";
 
 export const useAuthStore = create((set) => ({
-  user:    null,
-  profile: null,
-  loading: true,
+  user:         null,
+  profile:      null,
+  loading:      true,
+  isRecovering: false,
 
   initialize: async () => {
+
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        set({ isRecovering: true });
+      }
+    });
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
