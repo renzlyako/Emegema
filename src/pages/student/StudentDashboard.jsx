@@ -1,6 +1,7 @@
 // src/pages/student/StudentDashboard.jsx
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { BookOpen, LayoutDashboard, GraduationCap, FileText, Star, Bell, Mail, LogOut, Menu, X, ChevronRight, ChevronDown, Clock, TrendingUp, Award, AlertCircle, CheckCircle2, BookMarked, Calendar, MessageSquare, ClipboardList, Loader2, RefreshCw, Search, Play, CheckSquare, Plus, Hash, Eye, EyeOff, Calculator, FlaskConical, Languages, Landmark, Dumbbell, Palette, Music2, Cpu, HeartHandshake, Sparkles, PartyPopper, } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -1047,6 +1048,7 @@ function CoursesPage({ courses, loading, error, onRetry, onView, onJoin, pending
 // ─────────────────────────────────────────────
 function AssignmentsPage({ assignments, loading, error, onRetry }) {
   const [filter, setFilter] = useState("all");
+  const [viewingFeedback, setViewingFeedback] = useState(null);
   const filtered = assignments.filter(a => {
     if (filter === "all")       return true;
     if (filter === "pending")   return !a.submission;
@@ -1079,27 +1081,69 @@ function AssignmentsPage({ assignments, loading, error, onRetry }) {
           ) : filtered.map((a, i) => {
             const status = getStatus(a);
             const urgent = status === "pending" && isUrgent(a.due_date);
+            const feedback = a.submission?.feedback;
+            const feedbackTooLong = feedback && feedback.length > 100;
             return (
-              <div key={a.id} style={{ ...s.assignRowFull, borderTop: i > 0 ? "1px solid #e8f3ea" : "none" }}>
+              <div key={a.id} style={{ ...s.assignRowFull, borderTop: i > 0 ? "1px solid #e8f3ea" : "none", flexWrap: "wrap" }}>
                 <div style={{ ...s.statusDot, background: status === "graded" ? "#7CA982" : status === "submitted" ? "#e0a052" : urgent ? "#e05252" : "#c8ddc9" }} />
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={s.assignTitle}>{a.title}</p>
                   <p style={s.assignCourse}>{a.courseName} · Due {formatDueDate(a.due_date)}</p>
                   {a.submission?.grade != null && (
                     <p style={{ fontSize: 12, color: "#7CA982", marginTop: 3, fontWeight: 600 }}>
                       Grade: {a.submission.grade}/{a.maxPoints || 100}
-                      {a.submission.feedback && ` — "${a.submission.feedback}"`}
+                      {feedback && ` — "${feedbackTooLong ? feedback.slice(0, 100) + "…" : feedback}"`}
+                    </p>
+                  )}
+                  {feedbackTooLong && (
+                    <p style={{ fontSize: 10, color: "#9ab5a0", fontStyle: "italic", marginTop: 2 }}>
+                      Click "View & Feedback" to see the full feedback
                     </p>
                   )}
                 </div>
-                <span style={{ ...s.statusPill, background: status === "graded" ? "#e8f3ea" : status === "submitted" ? "#fff8e1" : "#fce8e8", color: status === "graded" ? "#1a5c30" : status === "submitted" ? "#7a5c00" : "#8b2020" }}>
-                  {status}
-                </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+                  <span style={{ ...s.statusPill, background: status === "graded" ? "#e8f3ea" : status === "submitted" ? "#fff8e1" : "#fce8e8", color: status === "graded" ? "#1a5c30" : status === "submitted" ? "#7a5c00" : "#8b2020" }}>
+                    {status}
+                  </span>
+                  {status === "graded" && feedback && (
+                    <button onClick={() => setViewingFeedback(a)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", background: "#e8f3ea", color: "#1a5c30", border: "none", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                      <FileText size={11} /> View & Feedback
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {viewingFeedback && createPortal(
+        <div style={jm.overlay} onClick={() => setViewingFeedback(null)}>
+          <div style={{ ...jm.modal, maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div style={jm.header}>
+              <div style={{ flex: 1 }}>
+                <h2 style={jm.title}>{viewingFeedback.title}</h2>
+                <p style={jm.subtitle}>{viewingFeedback.courseName}</p>
+              </div>
+              <button style={jm.closeBtn} onClick={() => setViewingFeedback(null)}><X size={18} /></button>
+            </div>
+            <div style={jm.body}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#1a5c30", background: "#e8f3ea", padding: "4px 12px", borderRadius: 99 }}>
+                  Grade: {viewingFeedback.submission.grade}/{viewingFeedback.maxPoints || 100}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={jm.label}>Teacher's Feedback</label>
+                <div style={{ background: "#F1F7ED", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#243E36", lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {viewingFeedback.submission.feedback}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 }

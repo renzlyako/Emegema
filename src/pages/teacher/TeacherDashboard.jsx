@@ -2529,54 +2529,54 @@ function CourseGradebook({ data, teacherId, onSaved, onRefresh }) {
 
                 {/* Quiz headers */}
                 {quizItems.map(q => (
-                  <th key={q.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0f4ff" }}>
+                  <th key={q.id} style={{ ...s.th, minWidth: 100, maxWidth: 130, textAlign: "center", background: "#f0f4ff" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#3b5bdb", textTransform: "uppercase" }}>QUIZ</div>
-                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{q.title}</div>
+                    <div title={q.title} style={{ fontSize: 11, color: "#243E36", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.title}</div>
                     <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{q.max_points ?? 100}</div>
                   </th>
                 ))}
 
                 {/* Exam headers */}
                 {examItems.map(e => (
-                  <th key={e.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#fff8f5" }}>
+                  <th key={e.id} style={{ ...s.th, minWidth: 100, maxWidth: 130, textAlign: "center", background: "#fff8f5" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#c0532a", textTransform: "uppercase" }}>EXAM</div>
-                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{e.title}</div>
+                    <div title={e.title} style={{ fontSize: 11, color: "#243E36", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</div>
                     <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{e.max_points ?? 100}</div>
                   </th>
                 ))}
 
                 {/* Assignment headers */}
                 {assignmentItems.map(a => (
-                  <th key={a.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0f4ff" }}>
+                  <th key={a.id} style={{ ...s.th, minWidth: 100, maxWidth: 130, textAlign: "center", background: "#f0f4ff" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#3b5bdb", textTransform: "uppercase" }}>ASSIGNMENT</div>
-                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{a.title}</div>
+                    <div title={a.title} style={{ fontSize: 11, color: "#243E36", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</div>
                     <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{a.max_points}</div>
                   </th>
                 ))}
 
                 {/* Activity headers (from Assignments) */}
                 {activityItems.map(a => (
-                  <th key={a.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0faf2" }}>
+                  <th key={a.id} style={{ ...s.th, minWidth: 100, maxWidth: 130, textAlign: "center", background: "#f0faf2" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#4a7c59", textTransform: "uppercase" }}>ACTIVITY</div>
-                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{a.title}</div>
+                    <div title={a.title} style={{ fontSize: 11, color: "#243E36", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</div>
                     <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{a.max_points}</div>
                   </th>
                 ))}
 
                 {/* Activity headers (from Assessments) */}
                 {activityAssessmentItems.map(a => (
-                  <th key={a.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#f0faf2" }}>
+                  <th key={a.id} style={{ ...s.th, minWidth: 100, maxWidth: 130, textAlign: "center", background: "#f0faf2" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#4a7c59", textTransform: "uppercase" }}>ACTIVITY</div>
-                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{a.title}</div>
+                    <div title={a.title} style={{ fontSize: 11, color: "#243E36", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</div>
                     <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{a.max_points ?? 100}</div>
                   </th>
                 ))}
 
                 {/* Project headers */}
                 {projectItems.map(p => (
-                  <th key={p.id} style={{ ...s.th, minWidth: 100, textAlign: "center", background: "#fff8f5" }}>
+                  <th key={p.id} style={{ ...s.th, minWidth: 100, maxWidth: 130, textAlign: "center", background: "#fff8f5" }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: "#c0532a", textTransform: "uppercase" }}>PROJECT</div>
-                    <div style={{ fontSize: 11, color: "#243E36", fontWeight: 700 }}>{p.title}</div>
+                    <div title={p.title} style={{ fontSize: 11, color: "#243E36", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
                     <div style={{ fontSize: 9, color: "#9ab5a0" }}>/{p.max_points}</div>
                   </th>
                 ))}
