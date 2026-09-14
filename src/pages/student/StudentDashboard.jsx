@@ -1049,6 +1049,8 @@ function CoursesPage({ courses, loading, error, onRetry, onView, onJoin, pending
 function AssignmentsPage({ assignments, loading, error, onRetry }) {
   const [filter, setFilter] = useState("all");
   const [viewingFeedback, setViewingFeedback] = useState(null);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 10;
   const filtered = assignments.filter(a => {
     if (filter === "all")       return true;
     if (filter === "pending")   return !a.submission;
@@ -1056,6 +1058,10 @@ function AssignmentsPage({ assignments, loading, error, onRetry }) {
     if (filter === "graded")    return a.submission?.status === "graded";
     return true;
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  useEffect(() => { setPage(1); }, [filter]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [totalPages, page]);
   const getStatus = (a) => {
     if (!a.submission) return "pending";
     if (a.submission.status === "graded") return "graded";
@@ -1078,7 +1084,7 @@ function AssignmentsPage({ assignments, loading, error, onRetry }) {
         <div style={s.card}>
           {filtered.length === 0 ? (
             <div style={s.emptyState}><CheckCircle2 size={32} color="#c8ddc9" /><p style={{ color: "#9ab5a0", marginTop: 8, fontSize: 14 }}>No assignments here!</p></div>
-          ) : filtered.map((a, i) => {
+          ) : paginated.map((a, i) => {
             const status = getStatus(a);
             const urgent = status === "pending" && isUrgent(a.due_date);
             const feedback = a.submission?.feedback;
@@ -1115,6 +1121,25 @@ function AssignmentsPage({ assignments, loading, error, onRetry }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {!loading && filtered.length > PER_PAGE && (
+        <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6, marginTop: 20 }}>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+            style={{ ...s.filterTab, opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? "not-allowed" : "pointer" }}>
+            ← Prev
+          </button>
+          {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(num => (
+            <button key={num} onClick={() => setPage(num)}
+              style={{ ...s.filterTab, ...(page === num ? s.filterTabActive : {}), minWidth: 36, padding: "7px 0" }}>
+              {num}
+            </button>
+          ))}
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            style={{ ...s.filterTab, opacity: page === totalPages ? 0.5 : 1, cursor: page === totalPages ? "not-allowed" : "pointer" }}>
+            Next →
+          </button>
         </div>
       )}
 

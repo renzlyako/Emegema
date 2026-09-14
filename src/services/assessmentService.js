@@ -628,10 +628,11 @@ export async function getOrCreateAttempt(assessmentId, studentId) {
 export async function saveAttemptProgress(attemptId, answers, currentIndex) {
   if (!attemptId) return;
   try {
-    await supabase
-      .from("assessment_attempts")
-      .update({ answers, current_index: currentIndex, last_saved_at: new Date().toISOString() })
-      .eq("id", attemptId);
+    await supabase.rpc("save_attempt_progress_secure", {
+      p_attempt_id: attemptId,
+      p_answers: answers,
+      p_current_index: currentIndex,
+    });
   } catch (e) {
     console.warn("Autosave failed (non-critical):", e.message);
   }

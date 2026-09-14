@@ -82,11 +82,12 @@ function PreScreen({ assessment, onStart, onBack }) {
       } else {
         setCodeError("Invalid code. Please try again or ask your teacher for the correct code.");
       }
-    } catch (e) {
-      setCodeError(e.message);
-    } finally {
+      } catch (e) {
+      setCodeError(e.message.includes("Too many failed attempts")
+        ? "Too many incorrect attempts. Please wait a few minutes before trying again." : e.message);
+      } finally {
       setVerifying(false);
-    }
+      }
   };
 
   const timerMode = getTimerMode(liveAssessment);
@@ -265,6 +266,7 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
   const [timeLeft,        setTimeLeft]        = useState(null);
   const [submitting,      setSubmitting]      = useState(false);
   const [violated,        setViolated]        = useState(false);
+  const [submitError,     setSubmitError]     = useState(null);
   const [lockedQuestions, setLockedQuestions] = useState(new Set());
   const containerRef  = useRef(null);
   const timerRef      = useRef(null);
@@ -293,17 +295,43 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
     clearInterval(autosaveTimerRef.current);
 
     setSubmitting(true);
+
     let submissionResult = null;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        submissionResult = await submitAssessmentSecure(
+          attemptIdRef.current, answersRef.current
+        );
+        lastError = null;
+        break;
+      } catch (e) {
+        lastError = e;
+        if (attempt < 3) await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+
+    if (lastError) {
+
+      submittedRef.current = false;
+      setSubmitting(false);
+      setSubmitError(
+        lastError.message?.toLowerCase().includes("jwt") ||
+        lastError.message?.toLowerCase().includes("session") ||
+        lastError.message?.toLowerCase().includes("auth")
+          ? "Your session expired while submitting. Your answers are saved — please try submitting again."
+          : "We couldn't submit your assessment due to a connection issue. Your answers are saved — please try again."
+      );
+      return;
+    }
+
     try {
-    const result = await submitAssessmentSecure(
-    attemptIdRef.current, answersRef.current
-    );
-    submissionResult = result;
-    await sendAssessmentNotifications(
-    assessment.id, studentId,
-    result.autoScore, result.maxScore, result.status
-    );
-    } catch (e) { console.error(e); }
+      await sendAssessmentNotifications(
+        assessment.id, studentId,
+        submissionResult.autoScore, submissionResult.maxScore, submissionResult.status
+      );
+    } catch (_) {}
 
     onSubmit(answersRef.current, questionsRef.current, reason === "violation", submissionResult, attemptIdRef.current);
     }, [assessment.id, studentId, onSubmit]);
@@ -421,28 +449,44 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
   }, [currentIdx, loading, questions, timerMode, assessment.time_per_question, lockCurrentAndAdvance]);
 
   useEffect(() => {
-    if (loading || questions.length === 0 || timerMode !== "overall") return;
-    const totalSecs   = assessment.time_limit * 60;
+  if (loading || questions.length === 0 || timerMode !== "overall") return;
+  const totalSecs = assessment.time_limit * 60;
+
+  const computeRemaining = () => {
     const elapsedSecs = attemptStartRef.current
       ? Math.floor((Date.now() - attemptStartRef.current.getTime()) / 1000)
       : 0;
-    const remaining = Math.max(0, totalSecs - elapsedSecs);
-    setTimeLeft(remaining);
-    if (remaining <= 0) { autoSubmit("timeout"); return; }
+    return Math.max(0, totalSecs - elapsedSecs);
+  };
+
+  const remaining = computeRemaining();
+  setTimeLeft(remaining);
+  if (remaining <= 0) { autoSubmit("timeout"); return; }
+
+  clearInterval(timerRef.current);
+  timerRef.current = setInterval(() => {
+    const r = computeRemaining();
+    setTimeLeft(r);
+    if (r <= 0) {
+      clearInterval(timerRef.current);
+      autoSubmit("timeout");
+    }
+  }, 1000);
+
+  const handleVisible = () => {
+    if (!document.hidden && !submittedRef.current) {
+      const r = computeRemaining();
+      setTimeLeft(r);
+      if (r <= 0) autoSubmit("timeout");
+    }
+  };
+  document.addEventListener("visibilitychange", handleVisible);
+
+  return () => {
     clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          autoSubmit("timeout");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-    
-  }, [loading, questions.length, timerMode]);
+    document.removeEventListener("visibilitychange", handleVisible);
+  };
+}, [loading, questions.length, timerMode]);
 
   const handleAnswer = (questionId, answer) => setAnswers(prev => ({ ...prev, [questionId]: answer }));
 
@@ -489,6 +533,21 @@ function TakingScreen({ assessment, studentId, onSubmit, onBack }) {
     <div style={ts.loadingScreen}>
       <Loader2 size={40} color="#7CA982" style={{ animation: "spin 1s linear infinite" }} />
       <p style={{ color: "#F1F7ED", marginTop: 16, fontSize: 15 }}>Loading assessment…</p>
+    </div>
+  );
+
+  if (submitError) return (
+    <div style={ts.loadingScreen}>
+      <AlertTriangle size={40} color="#e0a052" />
+      <p style={{ color: "#F1F7ED", marginTop: 16, fontSize: 15, textAlign: "center", maxWidth: 380, lineHeight: 1.6 }}>
+        {submitError}
+      </p>
+      <button
+        onClick={() => { setSubmitError(null); autoSubmit(violated ? "violation" : "manual"); }}
+        style={{ marginTop: 20, padding: "10px 24px", borderRadius: 10, border: "none", background: "#7CA982", color: "#243E36", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+      >
+        Try Submitting Again
+      </button>
     </div>
   );
 

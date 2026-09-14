@@ -2,17 +2,28 @@
 import { create } from "zustand";
 import { supabase } from "../services/supabase";
 
-export const useAuthStore = create((set) => ({
-  user:         null,
-  profile:      null,
-  loading:      true,
-  isRecovering: false,
+let manualSignOut = false;
+
+export const useAuthStore = create((set, get) => ({
+  user:          null,
+  profile:       null,
+  loading:       true,
+  isRecovering:  false,
+  sessionExpired: false,
 
   initialize: async () => {
 
     supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         set({ isRecovering: true });
+      }
+
+      if (event === "SIGNED_OUT") {
+        const wasLoggedIn = !!get().user;
+        if (wasLoggedIn && !manualSignOut) {
+          set({ user: null, profile: null, sessionExpired: true });
+        }
+        manualSignOut = false;
       }
     });
 
@@ -86,9 +97,12 @@ export const useAuthStore = create((set) => ({
   },
 
   signOut: async () => {
+    manualSignOut = true;
     await supabase.auth.signOut();
     set({ user: null, profile: null, loading: false });
   },
+
+  dismissSessionExpired: () => set({ sessionExpired: false }),
 
   setProfile: (profile) => set({ profile }),
 }));

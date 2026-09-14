@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AlertTriangle } from "lucide-react";
 
 // Pages
 import LandingPage      from "./pages/auth/LandingPage";
@@ -18,6 +19,36 @@ import AccessibilityPage from "./pages/legal/AccessibilityPage";
 import ProtectedRoute   from "./routes/ProtectedRoute";
 import { useAuthStore } from "./store/authStore";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
+
+function SessionExpiredModal() {
+  const { sessionExpired, dismissSessionExpired } = useAuthStore();
+  if (!sessionExpired) return null;
+
+  const handleDismiss = () => {
+    dismissSessionExpired();
+    window.location.href = "/login?reason=expired";
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 999999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 380, width: "100%", fontFamily: "'DM Sans', sans-serif", textAlign: "center" }}>
+        <AlertTriangle size={32} color="#e0a052" style={{ margin: "0 auto 12px" }} />
+        <h3 style={{ fontSize: 17, fontWeight: 800, color: "#243E36", marginBottom: 8 }}>
+          Your session has expired
+        </h3>
+        <p style={{ fontSize: 13, color: "#5a7a6e", marginBottom: 20, lineHeight: 1.6 }}>
+          For your security, you've been logged out. Any exam or assignment progress you had was already saved automatically. Please log in again to continue.
+        </p>
+        <button
+          onClick={handleDismiss}
+          style={{ width: "100%", padding: "11px 0", border: "none", borderRadius: 9, background: "#243E36", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Go to Login
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function RootRedirect() {
   const { user, profile, loading, isRecovering } = useAuthStore();
@@ -51,6 +82,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <SessionExpiredModal />
       <Routes>
 
         {/* ── Public routes ── */}

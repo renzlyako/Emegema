@@ -47,7 +47,9 @@ export default function LoginPage() {
   const signIn   = useAuthStore(state => state.signIn);
   const { user, profile, isRecovering } = useAuthStore();
   const [searchParams] = useSearchParams();
-  const loggedOutFromInactivity = searchParams.get("reason") === "inactivity";
+  const logoutReason = searchParams.get("reason");
+  const loggedOutFromInactivity = logoutReason === "inactivity";
+  const loggedOutFromExpiry     = logoutReason === "expired";
 
  
   useEffect(() => {
@@ -180,6 +182,12 @@ export default function LoginPage() {
           {loggedOutFromInactivity && !serverError && (
             <div style={st.infoBox}>
               <AlertCircle size={15} color="#7a5c00" /><span>You were signed out due to inactivity. Please sign in again.</span>
+            </div>
+          )}
+
+          {loggedOutFromExpiry && !serverError && (
+            <div style={st.infoBox}>
+              <AlertCircle size={15} color="#7a5c00" /><span>Your session expired. Any progress you had was already saved, please sign in again to continue.</span>
             </div>
           )}
 
