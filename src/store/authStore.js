@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { supabase } from "../services/supabase";
 
 let manualSignOut = false;
+let authListenerAttached = false; // bagong guard — pigil sa duplicate listener
 
 export const useAuthStore = create((set, get) => ({
   user:          null,
@@ -13,19 +14,23 @@ export const useAuthStore = create((set, get) => ({
 
   initialize: async () => {
 
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        set({ isRecovering: true });
-      }
+    if (!authListenerAttached) {
+      authListenerAttached = true;
 
-      if (event === "SIGNED_OUT") {
-        const wasLoggedIn = !!get().user;
-        if (wasLoggedIn && !manualSignOut) {
-          set({ user: null, profile: null, sessionExpired: true });
+      supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          set({ isRecovering: true });
         }
-        manualSignOut = false;
-      }
-    });
+
+        if (event === "SIGNED_OUT") {
+          const wasLoggedIn = !!get().user;
+          if (wasLoggedIn && !manualSignOut) {
+            set({ user: null, profile: null, sessionExpired: true });
+          }
+          manualSignOut = false;
+        }
+      });
+    }
 
     try {
       const { data: { session } } = await supabase.auth.getSession();

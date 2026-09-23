@@ -74,6 +74,20 @@ function formatExactDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function formatExactDateTime(dateStr) {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function getLateInfo(dueDate, submittedAt) {
+  if (!dueDate || !submittedAt) return { isLate: false };
+  const due = new Date(dueDate);
+  const sub = new Date(submittedAt);
+  if (sub <= due) return { isLate: false };
+  const hoursLate = Math.ceil((sub - due) / (1000 * 60 * 60));
+  return { isLate: true, hoursLate };
+}
+
 function getInitials(name = "") {
   return name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
 }
@@ -618,7 +632,7 @@ useEffect(() => {
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: "#243E36" }}>{sub.studentName}</p>
                       <p style={{ fontSize: 11, color: "#9ab5a0" }}>
-                        {sub.studentEmail} · {timeAgo(sub.submitted_at)}
+                        {sub.studentEmail} · Submitted {formatExactDateTime(sub.submitted_at)} ({timeAgo(sub.submitted_at)})
                         {isEssay && sub.essay_answer && <span style={{ marginLeft: 8, color: "#7CA982" }}>{wordCount} words</span>}
                         {isLink && sub.file_url && (
                           <span style={{ marginLeft: 8, fontWeight: 600, color: platform.color }}>
@@ -642,6 +656,15 @@ useEffect(() => {
                       <span style={{ ...s.statusPill, background: sub.status === "graded" ? "#e8f3ea" : "#fff8e1", color: sub.status === "graded" ? "#1a5c30" : "#7a5c00" }}>
                         {sub.status}
                       </span>
+                      {(() => {
+                        const late = getLateInfo(a?.due_date, sub.submitted_at);
+                        if (!late.isLate) return null;
+                        return (
+                          <span style={{ ...s.statusPill, background: "#fce8e8", color: "#8b2020" }}>
+                            <Clock size={10} /> Late {late.hoursLate}h
+                          </span>
+                        );
+                      })()}
 
                       {/* Toggle expand for essay, link, or project */}
                       {((isEssay && sub.essay_answer) || (isLink && sub.file_url) || (isProject && sub.demo_url)) ? (
@@ -850,6 +873,28 @@ useEffect(() => {
                   </div>
                 </div>
               )}
+
+              {/* Due/Submitted timestamp info */}
+              {a?.due_date && (() => {
+                const late = getLateInfo(a?.due_date, grading.submitted_at);
+                return (
+                  <div style={{ background: late.isLate ? "#fce8e8" : "#e8f3ea", borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <div>
+                      <p style={{ fontSize: 11, color: late.isLate ? "#8b2020" : "#1a5c30", fontWeight: 700, marginBottom: 2 }}>
+                        Due: {formatExactDateTime(a.due_date)}
+                      </p>
+                      <p style={{ fontSize: 11, color: late.isLate ? "#8b2020" : "#1a5c30" }}>
+                        Submitted: {formatExactDateTime(grading.submitted_at)}
+                      </p>
+                    </div>
+                    {late.isLate && (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#8b2020", background: "#fff", padding: "4px 10px", borderRadius: 99, border: "1px solid #f5c6c6" }}>
+                        {late.hoursLate}h late
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Assignment instructions for reference */}
               {a?.description && (
