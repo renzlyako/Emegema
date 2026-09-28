@@ -14,7 +14,7 @@ import { supabase } from "../../services/supabase";
 const QUESTION_TYPES = [
   { value: "multiple_choice", label: "Multiple Choice", icon: <CheckSquare size={14} />, color: "#243E36", auto: true  },
   { value: "true_false",      label: "True / False",    icon: <CheckCircle2 size={14} />, color: "#7CA982", auto: true  },
-  { value: "fill_blank",      label: "Fill in the Blank",icon: <Edit3 size={14} />,       color: "#4a7c59", auto: true  },
+  { value: "fill_blank",      label: "Identification", icon: <Edit3 size={14} />,       color: "#4a7c59", auto: true  },
   { value: "short_answer",    label: "Short Answer",    icon: <AlignLeft size={14} />,    color: "#e0a052", auto: false },
   { value: "essay",           label: "Essay",           icon: <FileText size={14} />,     color: "#8b6ce0", auto: false },
 ];
@@ -1279,7 +1279,7 @@ function QuestionEditor({ question: q, index, total, expanded, poolEnabled, onTo
           <div style={s.fieldGroup}>
             <label style={s.label}>Question <span style={{ color: "#e05252" }}>*</span></label>
             <textarea
-              placeholder={q.type === "fill_blank" ? 'Use ___ for blanks. E.g. "The capital of the Philippines is ___."' : "Enter your question here…"}
+              placeholder={q.type === "fill_blank" ? 'E.g. "What is the capital of the Philippines?"' : "Enter your question here…"}
               value={q.question} onChange={e => onChange({ question: e.target.value })}
               rows={2} style={{ ...s.input, resize: "vertical" }} className="lms-input" />
           </div>
@@ -1803,7 +1803,7 @@ const manualScoresValid = manualQuestions.every(q => {
   {/* Auto-graded score summary */}
   {questions.some(q => ["multiple_choice", "true_false", "fill_blank"].includes(q.type)) && (
   <div style={{ background: "#e8f3ea", borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-    <span style={{ fontSize: 13, fontWeight: 700, color: "#1a5c30" }}>Auto-graded Score (MC / T-F / Fill-blank)</span>
+    <span style={{ fontSize: 13, fontWeight: 700, color: "#1a5c30" }}>Auto-graded Score (MC / T-F / Identification)</span>
     <span style={{ fontSize: 16, fontWeight: 800, color: "#1a5c30" }}>{grading.score ?? 0} pts</span>
   </div>
   )}
