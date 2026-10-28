@@ -36,9 +36,7 @@ const NAV = [
   { id: "users",     label: "User Management",   icon: <Users size={18} />           },
   { id: "courses",   label: "Course Management", icon: <BookOpen size={18} />        },
   { id: "support",   label: "Support Requests",  icon: <Mail size={18} />            },
-  { id: "reports",   label: "Reports",           icon: <BarChart2 size={18} />       },
   { id: "audit",     label: "Audit Trail",       icon: <Shield size={18} />          },
-  { id: "settings",  label: "Settings",          icon: <Settings size={18} />        },
 ];
 
 function getInitials(name = "") {
@@ -198,7 +196,6 @@ export default function AdminDashboard() {
     fetchOverview();
     fetchUsers();
     fetchCourses();
-    fetchReports();
     fetchActivity();
     fetchAuditLog();
     fetchSupportRequests();
@@ -214,7 +211,7 @@ export default function AdminDashboard() {
   const STATS_CARDS = overviewStats ? [
     { label: "Total Users",       value: overviewStats.totalUsers,       icon: <Users size={20} />,    color: "#243E36" },
     { label: "Active Courses",    value: overviewStats.activeCourses,    icon: <BookOpen size={20} />, color: "#7CA982" },
-    { label: "Submissions Today", value: overviewStats.submissionsToday, icon: <FileText size={20} />, color: "#4a7c59" },
+    { label: "Open Support Requests", value: overviewStats.pendingSupport, icon: <Mail size={20} />, color: "#4a7c59" },
     { label: "Pending Approvals", value: overviewStats.pendingUsers,     icon: <Clock size={20} />,    color: "#e0a052" },
   ] : [];
 
@@ -226,7 +223,7 @@ export default function AdminDashboard() {
         <div style={s.sidebarTop}>
           <div style={s.logoRow}>
             <div style={s.logoIcon}><Shield size={16} color="#7CA982" /></div>
-            <span style={s.logoText}>EduSpace</span>
+            <span style={s.logoText}>Emegema</span>
             <button style={s.closeBtn} onClick={() => setSidebarOpen(false)} className="close-btn">
               <X size={17} color="rgba(241,247,237,0.4)" />
             </button>
@@ -444,7 +441,7 @@ function OverviewPage({ setActivePage, statsCards, statsLoading, statsError, pen
         </div>
 
         <div>
-          <SectionHead title="Activity Log" action="View Reports" onAction={() => setActivePage("reports")} />
+          <SectionHead title="Activity Log" />
           <div style={s.card}>
             {activityLoading ? (
               <div style={{ padding: "32px", display: "flex", justifyContent: "center" }}><Spinner /></div>
@@ -469,8 +466,8 @@ function OverviewPage({ setActivePage, statsCards, statsLoading, statsError, pen
           {[
             { icon: <Users size={20} />,     label: "Manage Users",    sub: "Add, edit, suspend",  page: "users",    color: "#243E36" },
             { icon: <BookOpen size={20} />,  label: "Manage Courses",  sub: "View all courses",    page: "courses",  color: "#7CA982" },
-            { icon: <BarChart2 size={20} />, label: "View Reports",    sub: "Stats & analytics",   page: "reports",  color: "#4a7c59" },
-            { icon: <Settings size={20} />,  label: "System Settings", sub: "Configure platform",  page: "settings", color: "#2d5a45" },
+            { icon: <Mail size={20} />,      label: "Support Requests", sub: "Respond to users",     page: "support", color: "#4a7c59" },
+            { icon: <Shield size={20} />,    label: "Audit Trail",      sub: "Review admin actions", page: "audit",   color: "#2d5a45" },
           ].map((q, i) => (
             <button key={i} style={s.quickCard} className="quick-card" onClick={() => setActivePage(q.page)}>
               <div style={{ ...s.quickIcon, background: q.color + "18", color: q.color }}>{q.icon}</div>
@@ -877,7 +874,7 @@ function CoursesPage({ courses, loading, error, onRefresh }) {
           <table style={s.table}>
             <thead>
               <tr>
-                {["Course", "Subject", "Teacher", "Students", "Created", "Status", "Actions"].map(h => (
+                {["Course", "Subject", "Teacher", "Students", "Created", "Status"].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -901,22 +898,6 @@ function CoursesPage({ courses, loading, error, onRefresh }) {
                     <span style={{ ...s.statusPill, ...(c.status === "active" ? { background: "#e8f3ea", color: "#1a5c30" } : { background: "#f0f0f0", color: "#666" }) }}>
                       {c.status}
                     </span>
-                  </td>
-                  <td style={s.td}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {c.status === "active" ? (
-                        <button style={{ ...s.iconActionBtn, color: "#e0a052" }} className="icon-action-btn" title="Archive" disabled={actionLoading[c.id]} onClick={() => handleStatusChange(c.id, "archived")}>
-                          {actionLoading[c.id] ? <Spinner size={11} /> : <ToggleLeft size={13} />}
-                        </button>
-                      ) : (
-                        <button style={{ ...s.iconActionBtn, color: "#7CA982" }} className="icon-action-btn" title="Reactivate" disabled={actionLoading[c.id]} onClick={() => handleStatusChange(c.id, "active")}>
-                          {actionLoading[c.id] ? <Spinner size={11} /> : <ToggleRight size={13} />}
-                        </button>
-                      )}
-                      <button style={{ ...s.iconActionBtn, color: "#e05252" }} className="icon-action-btn" title="Delete" disabled={actionLoading[c.id]} onClick={() => handleDelete(c.id)}>
-                        {actionLoading[c.id] ? <Spinner size={11} /> : <Trash2 size={13} />}
-                      </button>
-                    </div>
                   </td>
                 </tr>
               ))}
@@ -1131,8 +1112,8 @@ function AddUserModal({ onClose, onSuccess }) {
     if (!form.fullName.trim() || !form.email.trim() || !form.password.trim()) {
       setSaveError("All fields are required."); return;
     }
-    if (form.password.length < 8) {
-      setSaveError("Password must be at least 8 characters."); return;
+    if (form.password.length < 10) {
+      setSaveError("Password must be at least 10 characters with upper, lower, a number, and a symbol."); return;
     }
     setSaving(true); setSaveError("");
     try {
@@ -1182,12 +1163,11 @@ function AddUserModal({ onClose, onSuccess }) {
               style={s.input} className="lms-input">
               <option value="student">Student</option>
               <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
             </select>
           </div>
           <div style={s.fieldGroup}>
             <label style={s.label}>Temporary Password</label>
-            <input type="password" placeholder="Min. 8 characters" value={form.password}
+            <input type="password" placeholder="Min. 10 chars: upper, lower, number, symbol" value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
               style={s.input} className="lms-input" />
           </div>
@@ -1506,6 +1486,7 @@ function SupportRequestDetailModal({ request, onClose, onUpdated }) {
 function ACTION_META(action) {
   const map = {
     user_deleted:         { label: "User Deleted",   color: "#e05252", icon: <Trash2 size={14} /> },
+    user_created:         { label: "User Created",    color: "#4a7c59", icon: <Plus size={14} /> },
     user_status_changed:  { label: "Status Changed",  color: "#e0a052", icon: <UserCheck size={14} /> },
     grade_updated:        { label: "Grade Updated",   color: "#7CA982", icon: <FileText size={14} /> },
   };

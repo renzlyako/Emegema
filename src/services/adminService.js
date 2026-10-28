@@ -25,13 +25,11 @@ export async function getAdminOverviewStats() {
     .select("id", { count: "exact", head: true })
     .eq("status", "active");
 
-  // Submissions today
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const { count: submissionsToday } = await supabase
-    .from("submissions")
+  // Pending support requests
+  const { count: pendingSupport } = await supabase
+    .from("support_requests")
     .select("id", { count: "exact", head: true })
-    .gte("submitted_at", todayStart.toISOString());
+    .eq("status", "pending");
 
   // Pending users (status = 'pending')
   const { count: pendingUsers } = await supabase
@@ -42,7 +40,7 @@ export async function getAdminOverviewStats() {
   return {
     totalUsers:       totalUsers      ?? 0,
     activeCourses:    activeCourses   ?? 0,
-    submissionsToday: submissionsToday ?? 0,
+    pendingSupport:   pendingSupport ?? 0,
     pendingUsers:     pendingUsers    ?? 0,
   };
 }
@@ -350,26 +348,6 @@ export async function getAdminRecentActivity() {
     });
   });
 
-  // Recent submissions
-  const { data: recentSubs } = await supabase
-    .from("submissions")
-    .select(`
-      id, submitted_at,
-      profiles!submissions_student_id_fkey ( full_name ),
-      assignments ( title )
-    `)
-    .order("submitted_at", { ascending: false })
-    .limit(5);
-
-  (recentSubs || []).forEach(s => {
-    events.push({
-      id:    `sub-${s.id}`,
-      text:  `${s.profiles?.full_name ?? "A student"} submitted ${s.assignments?.title ?? "an assignment"}`,
-      time:  s.submitted_at,
-      color: "#4a7c59",
-      type:  "submission",
-    });
-  });
 
   // Recent courses created
   const { data: recentCourses } = await supabase
