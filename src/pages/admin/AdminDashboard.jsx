@@ -1512,7 +1512,7 @@ function AuditTrailPage({ auditLog, loading, error, onRefresh }) {
         <div>
           <h1 style={s.pageTitle}>Audit Trail</h1>
           <p style={s.pageSub}>
-            {loading ? "Loading…" : `${auditLog.length} recorded action${auditLog.length !== 1 ? "s" : ""} — deletions, status changes, and grade edits`}
+            {loading ? "Loading…" : `${auditLog.length} recorded action${auditLog.length !== 1 ? "s" : ""} — user deletions, creations, and status changes`}
           </p>
         </div>
         <button style={s.primaryBtn} className="primary-btn" onClick={onRefresh}>
